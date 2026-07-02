@@ -371,6 +371,38 @@
   .vide p { color: var(--gris-doux); font-size: 14px; }
 
   /* ---------- Carte réglage (mode responsable) ---------- */
+  /* Petit logo en haut de l'accueil */
+  .app-logo { height: 40px; width: auto; display: block; margin: 4px auto 14px; }
+
+  /* Bandeau des annonces du club */
+  #bandeau-annonces { margin-bottom: 18px; }
+  .annonce-bandeau {
+    border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
+    position: relative; border: 1px solid var(--bordure);
+    background: #eef4ff;
+  }
+  .annonce-bandeau.urgent { background: #fdf0ee; border-color: #f3c8c1; }
+  .annonce-bandeau .an-titre { font-size: 14px; font-weight: 800; color: var(--sapin); display: flex; align-items: center; gap: 7px; }
+  .annonce-bandeau .an-texte { font-size: 13px; color: var(--gris-texte); margin-top: 3px; line-height: 1.4; }
+  .annonce-bandeau .an-fermer {
+    position: absolute; top: 10px; right: 12px; cursor: pointer;
+    border: none; background: none; font-size: 16px; color: var(--gris-doux);
+  }
+  .annonce-gest-ligne {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--bordure); border-radius: 12px;
+    padding: 11px 13px; margin-bottom: 8px; background: var(--carte);
+  }
+  .annonce-gest-ligne .ag-info { flex: 1; }
+  .annonce-gest-ligne .ag-titre { font-size: 14px; font-weight: 800; color: var(--sapin); }
+  .annonce-gest-ligne .ag-texte { font-size: 12px; color: var(--gris-texte); margin-top: 2px; }
+  .annonce-gest-ligne button {
+    border: none; border-radius: 9px; padding: 7px 11px; cursor: pointer;
+    font-family: var(--police); font-weight: 800; font-size: 13px;
+    background: #fdf0ee; color: #a23226;
+  }
+
+  /* Bandeau des annonces du club (fin) */
   .reglage {
     background: var(--carte);
     border: 1px solid var(--bordure);
@@ -382,6 +414,32 @@
   .reglage .txt { flex: 1; }
   .reglage .txt strong { display: block; font-size: 15px; font-weight: 800; }
   .reglage .txt span { font-size: 13px; color: var(--gris-texte); }
+
+  /* Carte de rôle (Profil) */
+  .carte-role {
+    background: var(--carte); border: 1px solid var(--bordure);
+    border-radius: 18px; padding: 18px; box-shadow: var(--ombre);
+    display: flex; align-items: center; gap: 14px; margin-bottom: 6px;
+  }
+  .carte-role .txt { flex: 1; }
+  .carte-role .txt strong { display: block; font-size: 16px; font-weight: 800; color: var(--sapin); }
+  .carte-role .txt span { font-size: 13px; color: var(--gris-texte); }
+  .badge-role { font-size: 26px; }
+
+  /* Liste des membres (administration webmaster) */
+  .membre-ligne {
+    background: var(--carte); border: 1px solid var(--bordure);
+    border-radius: 14px; padding: 12px 14px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .membre-ligne .m-info { flex: 1; }
+  .membre-ligne .m-nom { font-size: 14px; font-weight: 800; color: var(--sapin); }
+  .membre-ligne .m-sous { font-size: 12px; color: var(--gris-texte); margin-top: 2px; }
+  .membre-ligne select {
+    font-family: var(--police); font-size: 13px; font-weight: 700;
+    border: 1px solid var(--bordure); border-radius: 9px; padding: 6px 8px;
+    background: var(--fond); color: var(--sapin);
+  }
 
   .switch { position: relative; width: 52px; height: 30px; flex: 0 0 auto; }
   .switch input { opacity: 0; width: 0; height: 0; }
@@ -647,6 +705,10 @@
   .connexion.cache { display: none; }
   .cx-logo { font-size: 34px; font-weight: 800; letter-spacing: -1px; margin-bottom: 6px; }
   .cx-logo .pilote { color: var(--vert); }
+
+  /* Logo image (écran de connexion) */
+  .cx-logo-img { width: 180px; max-width: 60%; height: auto; margin: 0 auto 10px; display: block; }
+  .cx-logo-img.petit { width: 120px; }
   .cx-sous { color: var(--gris-texte); font-size: 15px; text-align: center; margin-bottom: 32px; line-height: 1.4; }
   .cx-carte {
     background: var(--carte);
@@ -823,7 +885,7 @@
 
     <!-- Étape 1 : Bienvenue -->
     <div class="cx-etape actif" data-etape="bienvenue">
-      <div class="cx-logo">Asso<span class="pilote">Pilot</span></div>
+      <img src="logo.png" alt="AssoPilot" class="cx-logo-img" onerror="this.outerHTML='<div class=\'cx-logo\'>Asso<span class=\'pilote\'>Pilot</span></div>'" />
       <div class="cx-sous">Le coup de main facile, pour tout le club.</div>
       <div class="cx-carte">
         <button class="cx-bouton" id="cx-go-connexion">Se connecter</button>
@@ -844,7 +906,7 @@
 
     <!-- Étape 2 : Identifiant -->
     <div class="cx-etape" data-etape="identifiant">
-      <div class="cx-logo">Asso<span class="pilote">Pilot</span></div>
+      <img src="logo.png" alt="AssoPilot" class="cx-logo-img petit" onerror="this.outerHTML='<div class=\'cx-logo\'>Asso<span class=\'pilote\'>Pilot</span></div>'" />
       <div class="cx-sous">Entre ton identifiant pour commencer.</div>
       <div class="cx-carte">
         <div class="cx-champ">
@@ -859,7 +921,7 @@
 
     <!-- Étape 3 : PIN (pavé) -->
     <div class="cx-etape" data-etape="pin">
-      <div class="cx-logo">Asso<span class="pilote">Pilot</span></div>
+      <img src="logo.png" alt="AssoPilot" class="cx-logo-img petit" onerror="this.outerHTML='<div class=\'cx-logo\'>Asso<span class=\'pilote\'>Pilot</span></div>'" />
       <div class="cx-sous" id="cx-pin-consigne">Entre ton code PIN</div>
       <div class="cx-carte">
         <div class="pin-points" id="pin-points">
@@ -1003,10 +1065,14 @@
 
       <!-- ================= ACCUEIL = liste des besoins ================= -->
       <section class="ecran actif" data-ecran="accueil">
+        <img src="logo.png" alt="AssoPilot" class="app-logo" onerror="this.style.display='none'" />
         <div class="bienvenue">
           <h1 id="accueil-bonjour">Bonjour 👋</h1>
           <p id="accueil-phrase">Bienvenue au club !</p>
         </div>
+
+        <!-- Bandeau des annonces du club -->
+        <div id="bandeau-annonces"><!-- rempli par JS --></div>
 
         <div class="filtres" id="filtres">
           <button class="filtre actif" data-filtre="tous">Tous</button>
@@ -1037,23 +1103,65 @@
       <section class="ecran" data-ecran="profil">
         <h1 class="titre-ecran">Profil</h1>
         <p class="sous-titre">Tes infos.</p>
-        <div class="reglage">
+
+        <div class="carte-role">
           <div class="txt">
-            <strong>Je suis responsable de pôle</strong>
-            <span>Permet de publier des besoins pour le club.</span>
+            <strong id="profil-prenom">—</strong>
+            <span id="profil-role-lbl">Bénévole</span>
           </div>
-          <label class="switch">
-            <input type="checkbox" id="switch-resp" checked />
-            <span class="piste"></span>
-          </label>
+          <span class="badge-role" id="profil-role-badge">🙌</span>
         </div>
-        <p class="sous-titre" style="margin-top:14px; font-size:13px;">
-          Pour l'instant, ce réglage est une simulation. La vraie gestion des rôles arrivera avec les comptes.
-        </p>
 
         <div id="zone-demandes" style="display:none; margin-top:8px;">
           <div class="section-titre" style="margin-top:8px;">Demandes d'inscription</div>
           <div id="liste-demandes"><!-- rempli par JS --></div>
+        </div>
+
+        <div id="zone-annonces-gestion" style="display:none; margin-top:8px;">
+          <div class="section-titre" style="margin-top:8px;">Message d'accueil du club</div>
+          <button class="btn-creer-event" id="btn-creer-annonce" style="margin-bottom:14px;">＋ Publier un message</button>
+
+          <div id="form-annonce" style="display:none;">
+            <div class="cx-champ"><label for="an-titre">Titre</label><input id="an-titre" type="text" placeholder="Tournoi ce week-end !" /></div>
+            <div class="cx-champ"><label for="an-texte">Message</label><input id="an-texte" type="text" placeholder="On a besoin de monde à la buvette samedi." /></div>
+            <div class="cx-champ">
+              <label for="an-niveau">Importance</label>
+              <select id="an-niveau">
+                <option value="info">🔵 Info</option>
+                <option value="urgent">🔴 Urgent</option>
+              </select>
+            </div>
+            <div class="cx-erreur" id="an-erreur"></div>
+            <button class="btn-publier" id="an-publier">Publier</button>
+            <button class="cx-lien" id="an-annuler">Annuler</button>
+          </div>
+
+          <div id="liste-annonces-gestion"><!-- rempli par JS --></div>
+        </div>
+
+        <div id="zone-admin" style="display:none; margin-top:8px;">
+          <div class="section-titre" style="margin-top:8px;">Administration</div>
+          <button class="btn-creer-event" id="btn-creer-compte" style="margin-bottom:14px;">＋ Créer un compte</button>
+
+          <div id="form-compte" style="display:none;">
+            <div class="cx-champ"><label for="a-prenom">Prénom</label><input id="a-prenom" type="text" placeholder="Jean" /></div>
+            <div class="cx-champ"><label for="a-nom">Nom</label><input id="a-nom" type="text" placeholder="Dupont" /></div>
+            <div class="cx-champ"><label for="a-id">Identifiant</label><input id="a-id" type="text" placeholder="jean.president" autocapitalize="none" /></div>
+            <div class="cx-champ">
+              <label for="a-role">Rôle</label>
+              <select id="a-role">
+                <option value="benevole">Bénévole</option>
+                <option value="responsable">Responsable</option>
+                <option value="webmaster">Webmaster</option>
+              </select>
+            </div>
+            <div class="cx-erreur" id="a-erreur"></div>
+            <button class="btn-publier" id="a-creer">Créer le compte</button>
+            <button class="cx-lien" id="a-annuler">Annuler</button>
+            <p class="sous-titre" style="font-size:12px; margin-top:6px;">La personne choisira son code PIN à sa première connexion.</p>
+          </div>
+
+          <div id="liste-membres"><!-- rempli par JS --></div>
         </div>
 
         <button class="btn-deco" id="btn-deco">Se déconnecter</button>
@@ -1244,6 +1352,17 @@
       </div>
     </div>
 
+    <!-- ============ POP-UP des annonces (nouveaux messages) ============ -->
+    <div class="modale-fond" id="annonce-pop-fond">
+      <div class="modale" style="text-align:left;">
+        <div class="emoji" id="annonce-pop-emoji" style="text-align:center;">📣</div>
+        <div id="annonce-pop-contenu"><!-- rempli par JS --></div>
+        <div class="modale-boutons">
+          <button class="btn-modale principal" id="annonce-pop-ok">J'ai compris</button>
+        </div>
+      </div>
+    </div>
+
     <div class="toast" id="toast"></div>
   </div>
 
@@ -1268,6 +1387,11 @@
 
   /* Identité de l'utilisateur connecté (rempli à la connexion) */
   let MOI = "";          // prénom affiché
+  let roleActuel = "benevole";   // rôle du compte connecté : benevole | responsable | webmaster
+
+  /* Helpers de droits — un seul endroit pour décider qui peut quoi */
+  function peutGerer()   { return roleActuel === 'responsable' || roleActuel === 'webmaster'; } // besoins, événements, valider membres
+  function estWebmaster(){ return roleActuel === 'webmaster'; }                                  // administration, rôles
 
   /* ===========================================================
      SUPABASE — Lecture des besoins (Temps 1)
@@ -1431,7 +1555,7 @@
      =========================================================== */
   /* Menu ⋯ (modifier/supprimer) — visible seulement en mode responsable */
   function menuActions(b) {
-    const estResp = document.getElementById('switch-resp').checked;
+    const estResp = peutGerer();
     if (!estResp) return '';
     const ligneCloture = b.cloture
       ? `<button onclick="rouvrirBesoin(${b.id})">🔓 Rouvrir</button>`
@@ -2047,19 +2171,187 @@
     montrerToast("Événement créé ! 📅");
   });
 
-  /* Mode responsable simulé : le bouton + n'apparaît que pour un responsable */
-  const switchResp = document.getElementById('switch-resp');
+  /* Adapte l'interface au rôle réel du compte connecté */
   const navPlus = document.querySelector('.nav-plus');
   function majModeResponsable() {
-    navPlus.style.visibility = switchResp.checked ? 'visible' : 'hidden';
-    document.getElementById('zone-demandes').style.display = switchResp.checked ? 'block' : 'none';
-    if (switchResp.checked) afficherDemandes();
-    afficherBesoins(); // les menus ⋯ dépendent du mode
+    const gere = peutGerer();
+    navPlus.style.visibility = gere ? 'visible' : 'hidden';
+    document.getElementById('zone-demandes').style.display = gere ? 'block' : 'none';
+    if (gere) afficherDemandes();
+    // Zone de gestion des annonces : dirigeants
+    const za = document.getElementById('zone-annonces-gestion');
+    if (za) za.style.display = gere ? 'block' : 'none';
+    // Section administration : webmaster seulement
+    const admin = document.getElementById('zone-admin');
+    if (admin) {
+      admin.style.display = estWebmaster() ? 'block' : 'none';
+      if (estWebmaster()) afficherMembresAdmin();
+    }
+    afficherBesoins(); // les menus ⋯ dépendent du rôle
   }
-  switchResp.addEventListener('change', () => {
-    majModeResponsable();
-    montrerToast(switchResp.checked ? "Mode responsable activé" : "Mode bénévole : tu peux te proposer 🙌");
+
+  /* Liste de tous les membres validés + changement de rôle (webmaster) */
+  function afficherMembresAdmin() {
+    const zone = document.getElementById('liste-membres');
+    const valides = comptesDemo.filter(c => c.statut === 'valide');
+    if (!valides.length) { zone.innerHTML = `<p class="sous-titre" style="font-size:13px;">Aucun membre.</p>`; return; }
+    zone.innerHTML = valides.map(c => `
+      <div class="membre-ligne">
+        <div class="m-info">
+          <div class="m-nom">${c.prenom} ${c.nom || ''}</div>
+          <div class="m-sous">${c.identifiant}</div>
+        </div>
+        <select onchange="changerRole('${c.identifiant}', this.value)">
+          <option value="benevole"    ${c.role === 'benevole' ? 'selected' : ''}>Bénévole</option>
+          <option value="responsable" ${c.role === 'responsable' ? 'selected' : ''}>Responsable</option>
+          <option value="webmaster"   ${c.role === 'webmaster' ? 'selected' : ''}>Webmaster</option>
+        </select>
+      </div>`).join('');
+  }
+  function changerRole(id, nouveauRole) {
+    const c = comptesDemo.find(x => x.identifiant === id);
+    if (!c) return;
+    c.role = nouveauRole;
+    sb.from('membres').update({ role: nouveauRole }).eq('identifiant', id)
+      .then(({ error }) => { if (error) console.error('MAJ rôle échouée', error); });
+    montrerToast(`${c.prenom} est maintenant ${nouveauRole}.`);
+  }
+
+  /* Création d'un compte par le webmaster */
+  document.getElementById('btn-creer-compte').addEventListener('click', () => {
+    const f = document.getElementById('form-compte');
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
   });
+  document.getElementById('a-annuler').addEventListener('click', () => {
+    document.getElementById('form-compte').style.display = 'none';
+  });
+  document.getElementById('a-creer').addEventListener('click', async () => {
+    const prenom = document.getElementById('a-prenom').value.trim();
+    const nom    = document.getElementById('a-nom').value.trim();
+    const id     = document.getElementById('a-id').value.trim().toLowerCase();
+    const role   = document.getElementById('a-role').value;
+    const err = document.getElementById('a-erreur');
+    err.classList.remove('visible');
+    const stop = (m) => { err.textContent = m; err.classList.add('visible'); };
+
+    if (!prenom) { stop("Indique un prénom."); return; }
+    if (!id) { stop("Choisis un identifiant."); return; }
+    if (comptesDemo.some(c => c.identifiant === id)) { stop("Cet identifiant est déjà pris."); return; }
+
+    const nouveau = { identifiant: id, prenom, nom, role, statut: 'valide', pin: null, tel: '', email: '' };
+    // Écrit dans Supabase
+    const { error } = await sb.from('membres').insert({
+      identifiant: id, prenom, nom, role, statut: 'valide', pin: null
+    });
+    if (error) { console.error('Création compte échouée', error); stop("Erreur : compte non créé."); return; }
+
+    comptesDemo.push(nouveau);
+    document.getElementById('a-prenom').value = '';
+    document.getElementById('a-nom').value = '';
+    document.getElementById('a-id').value = '';
+    document.getElementById('a-role').value = 'benevole';
+    document.getElementById('form-compte').style.display = 'none';
+    afficherMembresAdmin();
+    montrerToast(`Compte créé : ${prenom} (${role}). Il choisira son PIN à la 1re connexion.`);
+  });
+
+  /* ===========================================================
+     ANNONCES (messages d'accueil du club)
+     =========================================================== */
+  let annonces = [];   // cache des annonces actives
+
+  async function chargerAnnonces() {
+    const { data, error } = await sb.from('annonces')
+      .select('*').eq('active', true).order('cree_le', { ascending: false });
+    if (error) { console.error('Chargement annonces échoué', error); return; }
+    annonces = data || [];
+    afficherBandeauAnnonces();
+    afficherAnnoncesGestion();
+    ouvrirPopupNouvelles();
+  }
+
+  /* Bandeau permanent en haut de l'accueil */
+  function afficherBandeauAnnonces() {
+    const zone = document.getElementById('bandeau-annonces');
+    if (!annonces.length) { zone.innerHTML = ''; return; }
+    zone.innerHTML = annonces.map(a => `
+      <div class="annonce-bandeau ${a.niveau === 'urgent' ? 'urgent' : ''}">
+        <div class="an-titre">${a.niveau === 'urgent' ? '🔴' : '📣'} ${a.titre}</div>
+        <div class="an-texte">${a.texte}</div>
+      </div>`).join('');
+  }
+
+  /* Pop-up : montre les annonces pas encore vues sur cet appareil */
+  function annoncesVues() {
+    try { return JSON.parse(memLire('assopilot_annonces_vues') || '[]'); } catch (e) { return []; }
+  }
+  function marquerVues(ids) {
+    memEcrire('assopilot_annonces_vues', JSON.stringify(ids));
+  }
+  function ouvrirPopupNouvelles() {
+    const vues = annoncesVues();
+    const nouvelles = annonces.filter(a => !vues.includes(a.id));
+    if (!nouvelles.length) return;
+    const contenu = document.getElementById('annonce-pop-contenu');
+    contenu.innerHTML = nouvelles.map(a => `
+      <div style="margin-bottom:14px;">
+        <div style="font-size:16px; font-weight:800; color:var(--sapin);">${a.niveau === 'urgent' ? '🔴' : '📣'} ${a.titre}</div>
+        <div style="font-size:14px; color:var(--gris-texte); margin-top:4px; line-height:1.45;">${a.texte}</div>
+      </div>`).join('');
+    document.getElementById('annonce-pop-fond').classList.add('ouvert');
+  }
+  document.getElementById('annonce-pop-ok').addEventListener('click', () => {
+    marquerVues(annonces.map(a => a.id));   // on marque tout comme vu
+    document.getElementById('annonce-pop-fond').classList.remove('ouvert');
+  });
+
+  /* Gestion (dirigeants) : liste des annonces actives avec retrait */
+  function afficherAnnoncesGestion() {
+    const zone = document.getElementById('liste-annonces-gestion');
+    if (!zone) return;
+    if (!annonces.length) { zone.innerHTML = `<p class="sous-titre" style="font-size:13px;">Aucun message actif.</p>`; return; }
+    zone.innerHTML = annonces.map(a => `
+      <div class="annonce-gest-ligne">
+        <div class="ag-info">
+          <div class="ag-titre">${a.niveau === 'urgent' ? '🔴' : '📣'} ${a.titre}</div>
+          <div class="ag-texte">${a.texte}</div>
+        </div>
+        <button onclick="retirerAnnonce('${a.id}')">Retirer</button>
+      </div>`).join('');
+  }
+
+  /* Publier / retirer */
+  document.getElementById('btn-creer-annonce').addEventListener('click', () => {
+    const f = document.getElementById('form-annonce');
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  });
+  document.getElementById('an-annuler').addEventListener('click', () => {
+    document.getElementById('form-annonce').style.display = 'none';
+  });
+  document.getElementById('an-publier').addEventListener('click', async () => {
+    const titre = document.getElementById('an-titre').value.trim();
+    const texte = document.getElementById('an-texte').value.trim();
+    const niveau = document.getElementById('an-niveau').value;
+    const err = document.getElementById('an-erreur');
+    err.classList.remove('visible');
+    if (!titre || !texte) { err.textContent = "Donne un titre et un message."; err.classList.add('visible'); return; }
+
+    const { error } = await sb.from('annonces').insert({ titre, texte, niveau, active: true, auteur: MOI });
+    if (error) { console.error('Publication annonce échouée', error); err.textContent = "Erreur : message non publié."; err.classList.add('visible'); return; }
+
+    document.getElementById('an-titre').value = '';
+    document.getElementById('an-texte').value = '';
+    document.getElementById('an-niveau').value = 'info';
+    document.getElementById('form-annonce').style.display = 'none';
+    await chargerAnnonces();
+    montrerToast("Message publié 📣");
+  });
+  async function retirerAnnonce(id) {
+    const { error } = await sb.from('annonces').update({ active: false }).eq('id', id);
+    if (error) { console.error('Retrait annonce échoué', error); return; }
+    await chargerAnnonces();
+    montrerToast("Message retiré.");
+  }
 
   /* Demandes d'inscription en attente (côté responsable) */
   function afficherDemandes() {
@@ -2247,13 +2539,26 @@
     MOI = membre.prenom;
     ecranConnexion.classList.add('cache');
     document.getElementById('accueil-bonjour').textContent = `Bonjour ${membre.prenom} 👋`;
-    document.getElementById('switch-resp').checked = (membre.role === 'responsable' || membre.role === 'webmaster');
+    roleActuel = membre.role || 'benevole';
+
+    // Carte de rôle dans le Profil
+    const roles = {
+      benevole:    { lbl: "Bénévole",             ico: "🙌" },
+      responsable: { lbl: "Responsable de pôle",  ico: "👔" },
+      webmaster:   { lbl: "Webmaster",            ico: "🔧" },
+    };
+    const r = roles[roleActuel] || roles.benevole;
+    document.getElementById('profil-prenom').textContent = `${membre.prenom}${membre.nom ? ' ' + membre.nom : ''}`;
+    document.getElementById('profil-role-lbl').textContent = r.lbl;
+    document.getElementById('profil-role-badge').textContent = r.ico;
+
     majModeResponsable();
     afficherBesoins();
     // Charge les vraies données depuis Supabase (amorce la démo au 1er lancement)
     (async () => {
       await amorcerDemoSiVide();
       await chargerBesoins();
+      await chargerAnnonces();
     })();
   }
 
