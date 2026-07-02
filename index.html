@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AssoPilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ===========================================================
+     ASSOPILOT — SPRINT 1
+     La boucle cliquable, sans base de données.
+     Besoin ouvert -> je me propose -> jauge -> couvert.
+     =========================================================== */
+
+  :root {
+    --vert:        #16a34a;
+    --vert-fonce:  #15803d;
+    --bleu-nuit:   #0f172a;
+    --gris-texte:  #475569;
+    --gris-doux:   #94a3b8;
+    --fond:        #f6f8fa;
+    --carte:       #ffffff;
+    --bordure:     #e8edf2;
+    --ombre:       0 2px 12px rgba(15, 23, 42, .06);
+    --police: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--police);
+    background: var(--fond);
+    color: var(--bleu-nuit);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: var(--fond);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- En-tête ---------- */
+  .entete {
+    padding: 20px 20px 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
+  .logo .pilote { color: var(--vert); }
+
+  /* ---------- Zone des écrans ---------- */
+  .ecrans { flex: 1; padding: 8px 20px 96px; }
+  .ecran { display: none; }
+  .ecran.actif { display: block; animation: apparait .25s ease; }
+
+  @keyframes apparait {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .titre-ecran { font-size: 26px; font-weight: 800; letter-spacing: -.5px; margin: 10px 0 4px; }
+  .sous-titre { color: var(--gris-texte); font-size: 15px; margin-bottom: 20px; }
+
+  /* ---------- Accueil chaleureux ---------- */
+  .bienvenue {
+    background: linear-gradient(135deg, var(--vert), var(--vert-fonce));
+    color: #fff;
+    border-radius: 18px;
+    padding: 20px;
+    margin: 10px 0 18px;
+    box-shadow: 0 6px 18px rgba(22,163,74,.25);
+  }
+  .bienvenue h1 { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+  .bienvenue p { font-size: 14px; opacity: .95; line-height: 1.4; }
+
+  .section-titre {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--gris-doux);
+    margin: 4px 0 12px;
+  }
+
+  /* ---------- Carte ÉVÉNEMENT (regroupe des coups de main) ---------- */
+  .event {
+    background: var(--carte);
+    border: 1px solid var(--bordure);
+    border-left: 5px solid var(--bordure);
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: var(--ombre);
+  }
+  /* Liseré gauche selon l'urgence la plus forte non pourvue */
+  .event.bord-urgent     { border-left-color: #e2453f; }
+  .event.bord-bientot    { border-left-color: #f59e0b; }
+  .event.bord-tranquille { border-left-color: #16a34a; }
+  .event.bord-ok         { border-left-color: var(--bordure); }
+
+  .event-haut {
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; user-select: none;
+  }
+  .event-haut .infos { flex: 1; }
+  .event-nom { font-size: 18px; font-weight: 800; letter-spacing: -.3px; }
+  .event-date { font-size: 13px; color: var(--gris-texte); margin-top: 2px; }
+  .event-fleche {
+    font-size: 14px; color: var(--gris-doux);
+    transition: transform .25s; flex: 0 0 auto;
+  }
+  .event.ouvert .event-fleche { transform: rotate(180deg); }
+
+  .event-reste {
+    font-size: 12px; font-weight: 700; color: var(--vert-fonce);
+    background: #ecfdf5; display: inline-block;
+    padding: 4px 10px; border-radius: 20px; margin-top: 10px;
+  }
+  .event-reste.urgent { color: #b91c1c; background: #fdecea; }
+
+  /* Corps repliable */
+  .event-corps {
+    display: none;
+    margin-top: 14px; flex-direction: column; gap: 10px;
+  }
+  .event.ouvert .event-corps { display: flex; animation: apparait .25s ease; }
+
+  /* Ligne de coup de main à l'intérieur d'un événement */
+  .cdm {
+    border: 1px solid var(--bordure);
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+  .cdm.inscrit { border-color: var(--vert); background: #f6fefb; }
+  .cdm.couvert { opacity: .6; }
+  .cdm-haut { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .cdm-nom { font-size: 15px; font-weight: 700; }
+  .cdm-meta { font-size: 12px; color: var(--gris-texte); margin: 4px 0 10px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .cdm .jauge-info { font-size: 11px; }
+  .cdm .btn-aide { padding: 10px; font-size: 14px; margin-top: 10px; }
+  .cdm .badge-couvert { padding: 10px; font-size: 14px; }
+
+  /* ---------- Carte de besoin ---------- */
+  .besoin {
+    background: var(--carte);
+    border: 1px solid var(--bordure);
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: var(--ombre);
+    transition: opacity .3s;
+  }
+  .besoin-haut { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .besoin-nom { font-size: 17px; font-weight: 800; line-height: 1.3; }
+
+  .pole {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .pole-sportif    { background: #dbeafe; color: #1d4ed8; }
+  .pole-logistique { background: #ffedd5; color: #c2410c; }
+  .pole-com        { background: #fae8ff; color: #a21caf; }
+  .pole-financier  { background: #dcfce7; color: #15803d; }
+
+  /* Pastille d'urgence */
+  .urgence {
+    display: inline-block;
+    font-size: 12px; font-weight: 700;
+    padding: 4px 11px; border-radius: 20px;
+    white-space: nowrap;
+  }
+  .urgence-urgent     { background: #fdecea; color: #b91c1c; }
+  .urgence-bientot    { background: #fff4e5; color: #c2410c; }
+  .urgence-tranquille { background: #e9f7ef; color: #15803d; }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin: 12px 0 14px;
+    color: var(--gris-texte);
+    font-size: 13px;
+  }
+  .meta span { display: flex; align-items: center; gap: 5px; }
+
+  /* ---------- Jauge ---------- */
+  .jauge-zone { margin-bottom: 14px; }
+  .jauge-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gris-texte);
+    margin-bottom: 6px;
+  }
+  .jauge {
+    height: 8px;
+    background: #eef1f5;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .jauge-barre {
+    height: 100%;
+    background: var(--vert);
+    border-radius: 10px;
+    width: 0%;
+    transition: width .4s ease;
+  }
+
+  /* Liste des participants sous la jauge */
+  .participants {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--vert-fonce);
+    margin: 2px 0 12px;
+  }
+
+  /* Précisions / petit mot du responsable */
+  .precisions {
+    font-size: 13px;
+    color: var(--gris-texte);
+    background: var(--fond);
+    border-radius: 10px;
+    padding: 9px 12px;
+    margin: 2px 0 12px;
+    line-height: 1.4;
+  }
+
+  /* ---------- Bouton d'engagement ---------- */
+  .btn-aide {
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: var(--police);
+    cursor: pointer;
+    background: var(--vert);
+    color: #fff;
+    transition: background .15s, transform .1s;
+  }
+  .btn-aide:hover { background: var(--vert-fonce); }
+  .btn-aide:active { transform: scale(.98); }
+
+  /* État : déjà inscrit */
+  .besoin.inscrit { border-color: var(--vert); }
+  .btn-aide.inscrit {
+    background: #ecfdf5;
+    color: var(--vert-fonce);
+    border: 1px solid var(--vert);
+  }
+
+  /* État : couvert */
+  .besoin.couvert { opacity: .65; }
+  .badge-couvert {
+    width: 100%;
+    text-align: center;
+    padding: 13px;
+    border-radius: 12px;
+    background: #ecfdf5;
+    color: var(--vert-fonce);
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  /* ---------- État vide (autres écrans) ---------- */
+  .vide {
+    background: var(--carte);
+    border: 1px dashed var(--bordure);
+    border-radius: 18px;
+    padding: 48px 24px;
+    text-align: center;
+    box-shadow: var(--ombre);
+    margin-top: 8px;
+  }
+  .vide .icone { font-size: 40px; margin-bottom: 12px; }
+  .vide p { color: var(--gris-doux); font-size: 14px; }
+
+  /* ---------- Carte réglage (mode responsable) ---------- */
+  .reglage {
+    background: var(--carte);
+    border: 1px solid var(--bordure);
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: var(--ombre);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .reglage .txt { flex: 1; }
+  .reglage .txt strong { display: block; font-size: 15px; font-weight: 800; }
+  .reglage .txt span { font-size: 13px; color: var(--gris-texte); }
+
+  .switch { position: relative; width: 52px; height: 30px; flex: 0 0 auto; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .piste {
+    position: absolute; inset: 0; cursor: pointer;
+    background: #cdd5df; border-radius: 30px; transition: background .2s;
+  }
+  .switch .piste::before {
+    content: ""; position: absolute;
+    width: 24px; height: 24px; left: 3px; top: 3px;
+    background: #fff; border-radius: 50%;
+    transition: transform .2s;
+  }
+  .switch input:checked + .piste { background: var(--vert); }
+  .switch input:checked + .piste::before { transform: translateX(22px); }
+
+  /* ---------- Navigation du bas ---------- */
+  .nav {
+    position: fixed; bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%; max-width: 480px;
+    background: var(--carte);
+    border-top: 1px solid var(--bordure);
+    display: flex; justify-content: space-around;
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+  }
+  .nav-item {
+    flex: 1; background: none; border: none; cursor: pointer;
+    padding: 6px 0; display: flex; flex-direction: column;
+    align-items: center; gap: 3px; color: var(--gris-doux);
+    font-family: var(--police); transition: color .15s;
+  }
+  .nav-item .ico { font-size: 22px; line-height: 1; }
+  .nav-item .lbl { font-size: 11px; font-weight: 600; }
+  .nav-item.actif { color: var(--vert); }
+
+  .nav-plus { flex: 0 0 auto; margin-top: -22px; }
+  .nav-plus button {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: none; background: var(--vert); color: #fff;
+    font-size: 30px; font-weight: 300; cursor: pointer;
+    box-shadow: 0 6px 16px rgba(22,163,74,.4);
+    transition: transform .12s, background .15s;
+  }
+  .nav-plus button:active { transform: scale(.92); }
+  .nav-plus button:hover { background: var(--vert-fonce); }
+
+  /* ---------- Panneau de création (glisse du bas) ---------- */
+  .voile {
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,.45);
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s; z-index: 80;
+  }
+  .voile.ouvert { opacity: 1; pointer-events: auto; }
+
+  .panneau {
+    position: fixed; left: 50%; bottom: 0;
+    transform: translateX(-50%) translateY(100%);
+    width: 100%; max-width: 480px;
+    background: var(--carte);
+    border-radius: 22px 22px 0 0;
+    padding: 8px 20px max(20px, env(safe-area-inset-bottom));
+    z-index: 81;
+    transition: transform .3s ease;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .panneau.ouvert { transform: translateX(-50%) translateY(0); }
+
+  .poignee {
+    width: 42px; height: 5px; border-radius: 10px;
+    background: var(--bordure);
+    margin: 8px auto 16px;
+  }
+  .panneau h2 { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+  .panneau .intro { color: var(--gris-texte); font-size: 14px; margin-bottom: 18px; }
+
+  .champ { margin-bottom: 16px; }
+  .champ label {
+    display: block; font-size: 13px; font-weight: 700;
+    color: var(--bleu-nuit); margin-bottom: 6px;
+  }
+  .champ input, .champ select {
+    width: 100%; padding: 12px 14px;
+    border: 1px solid var(--bordure); border-radius: 12px;
+    font-size: 15px; font-family: var(--police);
+    color: var(--bleu-nuit); background: var(--fond);
+    -webkit-appearance: none; appearance: none;
+  }
+  .champ input:focus, .champ select:focus {
+    outline: none; border-color: var(--vert);
+    background: #fff;
+  }
+  .duo { display: flex; gap: 12px; }
+  .duo .champ { flex: 1; }
+
+  .btn-publier {
+    width: 100%; border: none; border-radius: 14px;
+    padding: 15px; font-size: 16px; font-weight: 800;
+    font-family: var(--police); cursor: pointer;
+    background: var(--vert); color: #fff; margin-top: 4px;
+    transition: background .15s, transform .1s;
+  }
+  .btn-publier:hover { background: var(--vert-fonce); }
+  .btn-publier:active { transform: scale(.98); }
+  .btn-annuler {
+    width: 100%; border: none; background: none;
+    padding: 12px; font-size: 14px; font-weight: 700;
+    font-family: var(--police); color: var(--gris-doux);
+    cursor: pointer; margin-top: 4px;
+  }
+
+  /* ---------- Pop-up de confirmation (modale centrée) ---------- */
+  .modale-fond {
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,.45);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s; z-index: 90;
+  }
+  .modale-fond.ouvert { opacity: 1; pointer-events: auto; }
+
+  .modale {
+    background: var(--carte);
+    border-radius: 20px;
+    padding: 24px 22px;
+    width: 100%; max-width: 360px;
+    text-align: center;
+    transform: scale(.94);
+    transition: transform .2s;
+  }
+  .modale-fond.ouvert .modale { transform: scale(1); }
+
+  .modale .emoji { font-size: 38px; margin-bottom: 10px; }
+  .modale h3 { font-size: 19px; font-weight: 800; margin-bottom: 6px; }
+  .modale p { font-size: 14px; color: var(--gris-texte); margin-bottom: 20px; line-height: 1.4; }
+
+  .modale-boutons { display: flex; flex-direction: column; gap: 10px; }
+  .btn-modale {
+    border: none; border-radius: 12px; padding: 14px;
+    font-size: 15px; font-weight: 800; font-family: var(--police);
+    cursor: pointer; transition: background .15s, transform .1s;
+  }
+  .btn-modale:active { transform: scale(.98); }
+  .btn-modale.principal { background: var(--vert); color: #fff; }
+  .btn-modale.principal:hover { background: var(--vert-fonce); }
+  .btn-modale.danger { background: #fdecea; color: #b91c1c; }
+  .btn-modale.secondaire { background: none; color: var(--gris-doux); padding: 8px; }
+
+  /* Petit mot quand on se propose */
+  .toast {
+    position: fixed; bottom: 90px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--bleu-nuit); color: #fff;
+    padding: 12px 20px; border-radius: 30px;
+    font-size: 14px; font-weight: 600;
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s, transform .25s;
+    z-index: 50;
+  }
+  .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---------- Écran de connexion ---------- */
+  .connexion {
+    position: fixed; inset: 0;
+    background: var(--fond);
+    z-index: 100;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 28px;
+    max-width: 480px; margin: 0 auto;
+  }
+  .connexion.cache { display: none; }
+  .cx-logo { font-size: 34px; font-weight: 800; letter-spacing: -1px; margin-bottom: 6px; }
+  .cx-logo .pilote { color: var(--vert); }
+  .cx-sous { color: var(--gris-texte); font-size: 15px; text-align: center; margin-bottom: 32px; line-height: 1.4; }
+  .cx-carte {
+    background: var(--carte);
+    border: 1px solid var(--bordure);
+    border-radius: 20px;
+    padding: 24px;
+    width: 100%;
+    box-shadow: var(--ombre);
+  }
+  .cx-champ { margin-bottom: 16px; }
+  .cx-champ label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .cx-champ input {
+    width: 100%; padding: 14px;
+    border: 1px solid var(--bordure); border-radius: 12px;
+    font-size: 16px; font-family: var(--police);
+    background: var(--fond); color: var(--bleu-nuit);
+  }
+  .cx-champ input:focus { outline: none; border-color: var(--vert); background: #fff; }
+  .cx-erreur { color: #b91c1c; font-size: 13px; font-weight: 600; margin: -8px 0 14px; display: none; }
+  .cx-erreur.visible { display: block; }
+  .cx-bouton {
+    width: 100%; border: none; border-radius: 14px;
+    padding: 15px; font-size: 16px; font-weight: 800;
+    font-family: var(--police); cursor: pointer;
+    background: var(--vert); color: #fff;
+    transition: background .15s, transform .1s;
+  }
+  .cx-bouton:hover { background: var(--vert-fonce); }
+  .cx-bouton:active { transform: scale(.98); }
+  .cx-note { font-size: 12px; color: var(--gris-doux); text-align: center; margin-top: 18px; line-height: 1.4; }
+
+  /* Bouton se déconnecter dans le profil */
+  .btn-deco {
+    width: 100%; border: 1px solid var(--bordure);
+    background: var(--carte); border-radius: 14px;
+    padding: 13px; font-size: 14px; font-weight: 700;
+    font-family: var(--police); color: var(--gris-texte);
+    cursor: pointer; margin-top: 18px;
+  }
+  .btn-deco:hover { border-color: #f0997b; color: #b91c1c; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- ================= ÉCRAN DE CONNEXION ================= -->
+  <div class="connexion" id="connexion">
+    <div class="cx-logo">Asso<span class="pilote">Pilot</span></div>
+    <div class="cx-sous">Le coup de main facile, pour tout le club.</div>
+    <div class="cx-carte">
+      <div class="cx-champ">
+        <label for="cx-id">Ton identifiant</label>
+        <input id="cx-id" type="text" placeholder="lohan" autocapitalize="none" autocomplete="username" />
+      </div>
+      <div class="cx-champ">
+        <label for="cx-pin" id="cx-pin-label">Ton code PIN (4 chiffres)</label>
+        <input id="cx-pin" type="password" inputmode="numeric" maxlength="4" placeholder="• • • •" autocomplete="off" />
+      </div>
+      <div class="cx-erreur" id="cx-erreur"></div>
+      <button class="cx-bouton" id="cx-entrer">Entrer</button>
+      <div class="cx-note">Ton compte est créé par le club. À ta première connexion, tu choisis ton code PIN.</div>
+    </div>
+  </div>
+
+  <div class="app">
+
+    <header class="entete">
+      <div class="logo">Asso<span class="pilote">Pilot</span></div>
+    </header>
+
+    <main class="ecrans">
+
+      <!-- ================= ACCUEIL = liste des besoins ================= -->
+      <section class="ecran actif" data-ecran="accueil">
+        <div class="bienvenue">
+          <h1 id="accueil-bonjour">Bonjour 👋</h1>
+          <p>Merci pour ton engagement ! Cette semaine, le club a besoin de quelques coups de main.</p>
+        </div>
+        <div class="section-titre">Ce week-end au club</div>
+        <div id="liste-events"><!-- rempli par JS --></div>
+        <div class="section-titre" id="titre-libres">Autres coups de main</div>
+        <div id="liste-libres"><!-- rempli par JS --></div>
+      </section>
+
+      <section class="ecran" data-ecran="evenements">
+        <h1 class="titre-ecran">Événements</h1>
+        <p class="sous-titre">Les rendez-vous du club.</p>
+        <div class="vide"><div class="icone">📅</div><p>Plus tard : les événements du club.</p></div>
+      </section>
+
+      <section class="ecran" data-ecran="aider">
+        <h1 class="titre-ecran">Mes coups de main</h1>
+        <p class="sous-titre">Les missions où tu t'es proposé.</p>
+        <div id="mes-engagements"><!-- rempli par JS --></div>
+      </section>
+
+      <section class="ecran" data-ecran="profil">
+        <h1 class="titre-ecran">Profil</h1>
+        <p class="sous-titre">Tes infos.</p>
+        <div class="reglage">
+          <div class="txt">
+            <strong>Je suis responsable de pôle</strong>
+            <span>Permet de publier des besoins pour le club.</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="switch-resp" checked />
+            <span class="piste"></span>
+          </label>
+        </div>
+        <p class="sous-titre" style="margin-top:14px; font-size:13px;">
+          Pour l'instant, ce réglage est une simulation. La vraie gestion des rôles arrivera avec les comptes.
+        </p>
+        <button class="btn-deco" id="btn-deco">Se déconnecter</button>
+      </section>
+
+    </main>
+
+    <nav class="nav">
+      <button class="nav-item actif" data-cible="accueil">
+        <span class="ico">🏠</span><span class="lbl">Accueil</span>
+      </button>
+      <button class="nav-item" data-cible="evenements">
+        <span class="ico">📅</span><span class="lbl">Événements</span>
+      </button>
+      <div class="nav-plus"><button id="btn-plus" title="Créer un besoin">+</button></div>
+      <button class="nav-item" data-cible="aider">
+        <span class="ico">🙌</span><span class="lbl">Mes aides</span>
+      </button>
+      <button class="nav-item" data-cible="profil">
+        <span class="ico">🙂</span><span class="lbl">Profil</span>
+      </button>
+    </nav>
+
+    <!-- ============ PANNEAU : créer un besoin ============ -->
+    <div class="voile" id="voile"></div>
+    <div class="panneau" id="panneau">
+      <div class="poignee"></div>
+      <h2>Nouveau besoin</h2>
+      <p class="intro">Décris le coup de main recherché. Les bénévoles le verront tout de suite.</p>
+
+      <div class="champ">
+        <label for="f-nom">De quoi as-tu besoin ?</label>
+        <input id="f-nom" type="text" placeholder="Tenir la buvette" />
+      </div>
+
+      <div class="champ">
+        <label for="f-event">Rattacher à un événement ? <span style="font-weight:600; color:var(--gris-doux);">(facultatif)</span></label>
+        <select id="f-event">
+          <option value="">Aucun — coup de main libre</option>
+        </select>
+      </div>
+
+      <div class="champ">
+        <label for="f-pole">Pôle</label>
+        <select id="f-pole">
+          <option value="sportif">Sportif</option>
+          <option value="logistique">Logistique</option>
+          <option value="com">Communication</option>
+          <option value="financier">Financier</option>
+        </select>
+      </div>
+
+      <div class="duo">
+        <div class="champ">
+          <label for="f-date">Quel jour ?</label>
+          <input id="f-date" type="date" />
+        </div>
+        <div class="champ">
+          <label for="f-heure">À quelle heure ?</label>
+          <input id="f-heure" type="time" />
+        </div>
+      </div>
+
+      <div class="champ">
+        <label for="f-duree">Durée estimée</label>
+        <input id="f-duree" type="text" placeholder="2 h" />
+      </div>
+
+      <div class="champ">
+        <label for="f-urgence">Niveau d'urgence</label>
+        <select id="f-urgence">
+          <option value="auto" selected>⚙️ Automatique (selon la date)</option>
+          <option value="urgent">🔴 Forcer : Urgent</option>
+          <option value="bientot">🟠 Forcer : Bientôt</option>
+          <option value="tranquille">🟢 Forcer : Tranquille</option>
+        </select>
+      </div>
+
+      <div class="champ">
+        <label for="f-precisions">Précisions <span style="font-weight:600; color:var(--gris-doux);">(facultatif)</span></label>
+        <input id="f-precisions" type="text" placeholder="Rendez-vous à l'entrée côté parking" />
+      </div>
+
+      <div class="champ">
+        <label for="f-cherche">Combien de bénévoles ?</label>
+        <input id="f-cherche" type="number" min="1" value="2" />
+      </div>
+
+      <button class="btn-publier" id="btn-publier">Publier le besoin</button>
+      <button class="btn-annuler" id="btn-annuler">Annuler</button>
+    </div>
+
+    <!-- ============ POP-UP de confirmation ============ -->
+    <div class="modale-fond" id="modale-fond">
+      <div class="modale">
+        <div class="emoji" id="modale-emoji">🙌</div>
+        <h3 id="modale-titre">Confirmer</h3>
+        <p id="modale-texte"></p>
+        <div class="modale-boutons">
+          <button class="btn-modale principal" id="modale-ok">Confirmer</button>
+          <button class="btn-modale secondaire" id="modale-non">Annuler</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+<script>
+  /* ===========================================================
+     SUPABASE — connexion à la base
+     =========================================================== */
+  const SB_URL = "https://rboftnretbhasthvjdns.supabase.co";
+  const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJib2Z0bnJldGJoYXN0aHZqZG5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NzEzNDMsImV4cCI6MjA5ODA0NzM0M30.RwK0dGMM5e9_ExKfNW4D5Z9bHNrQ1ucvPyTqEzh5v58";
+  const sb = supabase.createClient(SB_URL, SB_KEY);
+
+  /* Date du jour */
+  const AUJ = new Date(); AUJ.setHours(0,0,0,0);
+
+  /* Identité de l'utilisateur connecté (rempli à la connexion) */
+  let MOI = "";          // prénom affiché
+  let MON_ID = null;     // identifiant (pseudo)
+  let MON_UUID = null;   // id du membre dans la base
+
+  /* Données chargées depuis Supabase */
+  let evenements = [];   // { id, nom, emoji, dateISO, heure, quand }
+  let besoins = [];      // { id, nom, event, pole, poleLabel, dateISO, duree, urgenceForcee, precisions, cherche, qui[], jeParticipe }
+
+  const labelsPole = { sportif: "Sportif", logistique: "Logistique", com: "Communication", financier: "Financier" };
+
+  /* Niveaux d'urgence : pastille (emoji + mot + couleur) et ordre de tri */
+  const urgences = {
+    urgent:     { label: "Urgent",     emoji: "🔴", rang: 0 },
+    bientot:    { label: "Bientôt",    emoji: "🟠", rang: 1 },
+    tranquille: { label: "Tranquille", emoji: "🟢", rang: 2 },
+  };
+
+  /* ===========================================================
+     CHARGEMENT depuis Supabase
+     =========================================================== */
+  async function chargerDonnees() {
+    // Événements
+    const { data: evs, error: e1 } = await sb
+      .from('evenements').select('*').order('date_iso', { ascending: true });
+    if (e1) { console.error(e1); montrerToast("Erreur de chargement des événements"); return; }
+    evenements = (evs || []).map((e, i) => ({
+      id: e.id, nom: e.nom, emoji: e.emoji || '📅',
+      dateISO: e.date_iso, heure: e.heure || '', quand: i
+    }));
+
+    // Besoins
+    const { data: bes, error: e2 } = await sb.from('besoins').select('*');
+    if (e2) { console.error(e2); montrerToast("Erreur de chargement des besoins"); return; }
+
+    // Positionnements (qui s'est proposé) + prénom du membre
+    const { data: pos, error: e3 } = await sb
+      .from('positionnements').select('besoin_id, membre_id, membres(prenom)');
+    if (e3) { console.error(e3); }
+
+    besoins = (bes || []).map(b => {
+      const inscrits = (pos || []).filter(p => p.besoin_id === b.id);
+      const qui = inscrits.map(p => p.membres ? p.membres.prenom : '?');
+      const jeParticipe = inscrits.some(p => p.membre_id === MON_UUID);
+      return {
+        id: b.id, nom: b.nom, event: b.event_id,
+        pole: b.pole || 'logistique', poleLabel: labelsPole[b.pole] || 'Logistique',
+        dateISO: b.date_iso, duree: b.duree || '—',
+        urgenceForcee: b.urgence_forcee || null,
+        importance: 1, precisions: b.precisions || '',
+        cherche: b.cherche || 1, qui, jeParticipe
+      };
+    });
+
+    // Remplir le menu événement du formulaire
+    rafraichirMenuEvenements();
+    afficherBesoins();
+  }
+
+
+  /* URGENCE AUTOMATIQUE : calculée selon le nombre de jours avant l'échéance.
+     Si un niveau a été forcé par le responsable, on le respecte. */
+  function urgenceDe(b) {
+    if (b.urgenceForcee) return b.urgenceForcee;
+    if (!b.dateISO) return "tranquille";
+    const cible = new Date(b.dateISO + "T00:00:00");
+    const jours = Math.round((cible - AUJ) / 86400000);
+    if (jours <= 1) return "urgent";      // aujourd'hui ou demain
+    if (jours <= 3) return "bientot";     // dans les 3 prochains jours
+    return "tranquille";                  // au-delà
+  }
+
+  /* Affiche la date d'un besoin en français à partir de sa dateISO (période si finISO) */
+  function dateLisible(b) {
+    if (!b.dateISO) return "À venir";
+    const court = iso => new Date(iso + "T00:00:00").toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+    if (b.finISO && b.finISO !== b.dateISO) {
+      return `Du ${court(b.dateISO)} au ${court(b.finISO)}`;
+    }
+    const d = new Date(b.dateISO + "T00:00:00");
+    const txt = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    return txt.charAt(0).toUpperCase() + txt.slice(1);
+  }
+
+  /* Date d'un événement : jour + heure éventuelle */
+  function dateEvent(ev) {
+    const d = new Date(ev.dateISO + "T00:00:00");
+    const txt = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const joli = txt.charAt(0).toUpperCase() + txt.slice(1);
+    return ev.heure ? `${joli} · ${ev.heure.replace(':', 'h')}` : joli;
+  }
+
+  /* ===========================================================
+     AFFICHAGE DES BESOINS
+     =========================================================== */
+  function carteBesoin(b) {
+    const couvert = b.qui.length >= b.cherche;
+    const pct = Math.min(100, Math.round((b.qui.length / b.cherche) * 100));
+
+    let action;
+    if (couvert) {
+      action = `<div class="badge-couvert">✓ Besoin couvert, merci à tous !</div>`;
+    } else if (b.jeParticipe) {
+      action = `<button class="btn-aide inscrit" onclick="basculer(${b.id})">👍 Tu participes — me retirer</button>`;
+    } else {
+      action = `<button class="btn-aide" onclick="basculer(${b.id})">Je donne un coup de main</button>`;
+    }
+
+    return `
+      <div class="besoin ${couvert ? 'couvert' : ''} ${b.jeParticipe && !couvert ? 'inscrit' : ''}">
+        <div class="besoin-haut">
+          <div class="besoin-nom">${b.nom}</div>
+          <span class="urgence urgence-${urgenceDe(b)}">${urgences[urgenceDe(b)].emoji} ${urgences[urgenceDe(b)].label}</span>
+        </div>
+        <div class="meta">
+          <span>📅 ${dateLisible(b)}</span>
+          <span>⏱️ ${b.duree}</span>
+          <span class="pole pole-${b.pole}">${b.poleLabel}</span>
+        </div>
+        <div class="jauge-zone">
+          <div class="jauge-info">
+            <span>${b.qui.length} sur ${b.cherche} bénévoles</span>
+            <span>${couvert ? 'Complet' : (b.cherche - b.qui.length) + ' place(s) restante(s)'}</span>
+          </div>
+          <div class="jauge"><div class="jauge-barre" style="width:${pct}%"></div></div>
+        </div>
+        ${blocPrecisions(b)}
+        ${listeParticipants(b)}
+        ${action}
+      </div>`;
+  }
+
+  /* Affiche joliment "Avec : Sarah, toi" — ou rien si personne */
+  function listeParticipants(b) {
+    if (b.qui.length === 0) return '';
+    const noms = b.qui.map(p => p === MOI ? "toi" : p).join(", ");
+    return `<div class="participants">👥 Avec : ${noms}</div>`;
+  }
+
+  /* Affiche les précisions (le petit mot du responsable) si présentes */
+  function blocPrecisions(b) {
+    if (!b.precisions) return '';
+    return `<div class="precisions">💬 ${b.precisions}</div>`;
+  }
+
+  /* Coup de main compact, affiché à l'intérieur d'une carte événement */
+  function ligneCdm(b) {
+    const couvert = b.qui.length >= b.cherche;
+    const pct = Math.min(100, Math.round((b.qui.length / b.cherche) * 100));
+    let action;
+    if (couvert) {
+      action = `<div class="badge-couvert">✓ Couvert, merci !</div>`;
+    } else if (b.jeParticipe) {
+      action = `<button class="btn-aide inscrit" onclick="basculer(${b.id})">👍 Tu participes — me retirer</button>`;
+    } else {
+      action = `<button class="btn-aide" onclick="basculer(${b.id})">Je donne un coup de main</button>`;
+    }
+    return `
+      <div class="cdm ${couvert ? 'couvert' : ''} ${b.jeParticipe && !couvert ? 'inscrit' : ''}">
+        <div class="cdm-haut">
+          <div class="cdm-nom">${b.nom}</div>
+          <span class="urgence urgence-${urgenceDe(b)}">${urgences[urgenceDe(b)].emoji} ${urgences[urgenceDe(b)].label}</span>
+        </div>
+        <div class="cdm-meta">
+          <span>⏱️ ${b.duree}</span>
+          <span class="pole pole-${b.pole}">${b.poleLabel}</span>
+        </div>
+        <div class="jauge-zone">
+          <div class="jauge-info">
+            <span>${b.qui.length} sur ${b.cherche} bénévoles</span>
+            <span>${couvert ? 'Complet' : (b.cherche - b.qui.length) + ' place(s)'}</span>
+          </div>
+          <div class="jauge"><div class="jauge-barre" style="width:${pct}%"></div></div>
+        </div>
+        ${blocPrecisions(b)}
+        ${listeParticipants(b)}
+        ${action}
+      </div>`;
+  }
+
+  /* État d'ouverture de l'accordéon : id de l'événement ouvert (un seul) */
+  let eventOuvert = null;
+
+  /* Ouvrir/fermer un événement (un seul ouvert à la fois) */
+  function ouvrirEvent(id) {
+    eventOuvert = (eventOuvert === id) ? null : id;
+    afficherBesoins();
+  }
+
+  function afficherBesoins() {
+    // --- Section ÉVÉNEMENTS ---
+    // 1) Pour chaque événement, on calcule son urgence dominante (coup de main le plus urgent NON pourvu)
+    const cartes = evenements.map(ev => {
+      const liste = besoins.filter(b => b.event === ev.id);
+      const ouverts = liste.filter(b => b.qui.length < b.cherche);
+      const restes = liste.reduce((s, b) => s + Math.max(0, b.cherche - b.qui.length), 0);
+      // rang le plus urgent parmi les non pourvus (0 = urgent). Si tout pourvu -> ok
+      let rangMin = ouverts.length
+        ? Math.min(...ouverts.map(b => urgences[urgenceDe(b)].rang))
+        : 99;
+      const niveau = rangMin === 0 ? "urgent" : rangMin === 1 ? "bientot" : rangMin === 2 ? "tranquille" : "ok";
+      return { ev, liste, restes, rangMin, niveau };
+    }).filter(c => c.liste.length > 0);
+
+    // 2) Tri : urgences d'abord (rangMin croissant), puis chronologique (quand croissant)
+    cartes.sort((a, b) => a.rangMin - b.rangMin || a.ev.quand - b.ev.quand);
+
+    document.getElementById('liste-events').innerHTML = cartes.map(c => {
+      const lignes = [...c.liste]
+        .sort((a, b) => urgences[urgenceDe(a)].rang - urgences[urgenceDe(b)].rang || b.importance - a.importance)
+        .map(ligneCdm).join('');
+      const restesTxt = c.restes > 0
+        ? `Il reste ${c.restes} coup(s) de main`
+        : "✓ Tout est couvert, bravo !";
+      return `
+        <div class="event bord-${c.niveau} ${eventOuvert === c.ev.id ? 'ouvert' : ''}" data-event="${c.ev.id}">
+          <div class="event-haut" onclick="ouvrirEvent('${c.ev.id}')">
+            <div class="infos">
+              <div class="event-nom">${c.ev.emoji} ${c.ev.nom}</div>
+              <div class="event-date">${dateEvent(c.ev)}</div>
+              <div class="event-reste ${c.restes > 0 && c.rangMin === 0 ? 'urgent' : ''}">${restesTxt}</div>
+            </div>
+            <div class="event-fleche">▼</div>
+          </div>
+          <div class="event-corps">${lignes}</div>
+        </div>`;
+    }).join('') || `<div class="vide"><div class="icone">📅</div><p>Aucun événement à venir.</p></div>`;
+
+    // --- Section COUPS DE MAIN LIBRES (sans événement) ---
+    const libres = besoins.filter(b => !b.event).sort((a, b) => {
+      const aC = a.qui.length >= a.cherche, bC = b.qui.length >= b.cherche;
+      if (aC !== bC) return aC ? 1 : -1;
+      return urgences[urgenceDe(a)].rang - urgences[urgenceDe(b)].rang || b.importance - a.importance;
+    });
+    document.getElementById('titre-libres').style.display = libres.length ? '' : 'none';
+    document.getElementById('liste-libres').innerHTML = libres.map(carteBesoin).join('');
+
+    // --- Mes engagements ---
+    const miens = besoins.filter(b => b.jeParticipe);
+    const zone = document.getElementById('mes-engagements');
+    zone.innerHTML = miens.length
+      ? miens.map(carteBesoin).join('')
+      : `<div class="vide"><div class="icone">🙌</div><p>Tu ne t'es proposé sur aucune mission pour l'instant.</p></div>`;
+  }
+
+  /* ===========================================================
+     LA BOUCLE : se proposer / se retirer (via pop-up)
+     =========================================================== */
+  function basculer(id) {
+    const b = besoins.find(x => x.id === id);
+    if (!b) return;
+
+    if (b.jeParticipe) {
+      // Se retirer : pop-up avec ton plus prudent
+      ouvrirModale({
+        emoji: "🤔",
+        titre: "Te retirer ?",
+        texte: `Tu ne participeras plus à « ${b.nom} ». La place se rouvrira pour un autre bénévole.`,
+        labelOk: "Oui, me retirer",
+        styleOk: "danger",
+        labelNon: "Garder ma place",
+        onOk: async () => {
+          // Mise à jour visuelle immédiate
+          b.jeParticipe = false;
+          b.qui = b.qui.filter(p => p !== MOI);
+          afficherBesoins();
+          montrerToast("Tu t'es retiré de cette mission.");
+          // Écriture en base
+          const { error } = await sb.from('positionnements')
+            .delete().eq('besoin_id', b.id).eq('membre_id', MON_UUID);
+          if (error) { console.error(error); montrerToast("Souci d'enregistrement, on réessaie…"); chargerDonnees(); }
+        }
+      });
+    } else {
+      // S'engager : pop-up de confirmation
+      ouvrirModale({
+        emoji: "🙌",
+        titre: "Confirmer ton coup de main ?",
+        texte: `Tu t'engages pour « ${b.nom} ».`,
+        labelOk: "Je confirme",
+        styleOk: "principal",
+        labelNon: "Annuler",
+        onOk: async () => {
+          b.jeParticipe = true;
+          if (!b.qui.includes(MOI)) b.qui.push(MOI);
+          afficherBesoins();
+          montrerToast(b.qui.length >= b.cherche ? "Génial, le besoin est couvert ! 🎉" : "Merci pour ton coup de main ! 👍");
+          const { error } = await sb.from('positionnements')
+            .insert({ besoin_id: b.id, membre_id: MON_UUID });
+          if (error) { console.error(error); montrerToast("Souci d'enregistrement, on réessaie…"); chargerDonnees(); }
+        }
+      });
+    }
+  }
+
+  /* Moteur générique de pop-up */
+  const modaleFond = document.getElementById('modale-fond');
+  let actionOk = null;
+
+  function ouvrirModale({ emoji, titre, texte, labelOk, styleOk, labelNon, onOk }) {
+    document.getElementById('modale-emoji').textContent = emoji;
+    document.getElementById('modale-titre').textContent = titre;
+    document.getElementById('modale-texte').textContent = texte;
+    const ok = document.getElementById('modale-ok');
+    ok.textContent = labelOk;
+    ok.className = "btn-modale " + (styleOk || "principal");
+    document.getElementById('modale-non').textContent = labelNon || "Annuler";
+    actionOk = onOk;
+    modaleFond.classList.add('ouvert');
+  }
+  function fermerModale() {
+    modaleFond.classList.remove('ouvert');
+    actionOk = null;
+  }
+  document.getElementById('modale-ok').addEventListener('click', () => {
+    const a = actionOk;
+    fermerModale();
+    if (a) a();
+  });
+  document.getElementById('modale-non').addEventListener('click', fermerModale);
+  modaleFond.addEventListener('click', (e) => { if (e.target === modaleFond) fermerModale(); });
+
+  let toastTimer;
+  function montrerToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('visible'), 2200);
+  }
+
+  /* ===========================================================
+     NAVIGATION
+     =========================================================== */
+  const onglets = document.querySelectorAll('.nav-item');
+  const ecrans  = document.querySelectorAll('.ecran');
+  function afficher(cible) {
+    ecrans.forEach(e => e.classList.toggle('actif', e.dataset.ecran === cible));
+    onglets.forEach(o => o.classList.toggle('actif', o.dataset.cible === cible));
+  }
+  onglets.forEach(o => o.addEventListener('click', () => afficher(o.dataset.cible)));
+
+  /* ===========================================================
+     CRÉER UN BESOIN : ouvrir / fermer le panneau, publier
+     =========================================================== */
+  const voile   = document.getElementById('voile');
+  const panneau = document.getElementById('panneau');
+
+  function ouvrirPanneau() {
+    voile.classList.add('ouvert');
+    panneau.classList.add('ouvert');
+  }
+  function fermerPanneau() {
+    voile.classList.remove('ouvert');
+    panneau.classList.remove('ouvert');
+  }
+
+  document.getElementById('btn-plus').addEventListener('click', ouvrirPanneau);
+  document.getElementById('btn-annuler').addEventListener('click', fermerPanneau);
+  voile.addEventListener('click', fermerPanneau);
+
+  /* Mode responsable simulé : le bouton + n'apparaît que pour un responsable */
+  const switchResp = document.getElementById('switch-resp');
+  const navPlus = document.querySelector('.nav-plus');
+  function majModeResponsable() {
+    navPlus.style.visibility = switchResp.checked ? 'visible' : 'hidden';
+  }
+  switchResp.addEventListener('change', () => {
+    majModeResponsable();
+    montrerToast(switchResp.checked ? "Mode responsable activé" : "Mode bénévole : tu peux te proposer 🙌");
+  });
+
+  document.getElementById('btn-publier').addEventListener('click', async () => {
+    const nom    = document.getElementById('f-nom').value.trim();
+    const event  = document.getElementById('f-event').value || null;
+    const pole   = document.getElementById('f-pole').value;
+    const dateISO = document.getElementById('f-date').value;   // ex "2026-06-28"
+    const duree  = document.getElementById('f-duree').value.trim();
+    const niveau = document.getElementById('f-urgence').value;  // "auto" ou un niveau forcé
+    const precisions = document.getElementById('f-precisions').value.trim();
+    const cherche = parseInt(document.getElementById('f-cherche').value, 10);
+
+    if (!nom) { montrerToast("Donne un nom au besoin 🙂"); return; }
+    if (!cherche || cherche < 1) { montrerToast("Indique au moins 1 bénévole."); return; }
+
+    // Si rattaché à un événement, on reprend sa date (pour l'urgence auto) ; sinon celle saisie
+    const ev = evenements.find(e => e.id === event);
+    const dateFinale = ev ? ev.dateISO : (dateISO || null);
+
+    // Écriture dans Supabase
+    const { error } = await sb.from('besoins').insert({
+      nom,
+      event_id: event,
+      pole,
+      date_iso: dateFinale,
+      duree: duree || null,
+      urgence_forcee: niveau === "auto" ? null : niveau,
+      precisions: precisions || null,
+      cherche
+    });
+    if (error) { console.error(error); montrerToast("Impossible de publier, réessaie."); return; }
+
+    // On vide le formulaire pour la prochaine fois
+    document.getElementById('f-nom').value = '';
+    document.getElementById('f-event').value = '';
+    document.getElementById('f-date').value = '';
+    document.getElementById('f-heure').value = '';
+    document.getElementById('f-duree').value = '';
+    document.getElementById('f-precisions').value = '';
+    document.getElementById('f-cherche').value = 2;
+    document.getElementById('f-pole').value = 'sportif';
+    document.getElementById('f-urgence').value = 'auto';
+
+    fermerPanneau();
+    afficher('accueil');
+    await chargerDonnees();
+    montrerToast("Besoin publié ! 🎉");
+  });
+
+  /* ===========================================================
+     CONNEXION via Supabase (identifiant + PIN à 4 chiffres).
+     Les comptes sont créés par le club. À la 1re connexion,
+     le membre choisit son PIN.
+     =========================================================== */
+  const ecranConnexion = document.getElementById('connexion');
+
+  /* Mémoire simple : on retient l'identité sur l'appareil si possible */
+  function memLire(cle) {
+    try { return localStorage.getItem(cle); } catch (e) { return null; }
+  }
+  function memEcrire(cle, val) {
+    try { localStorage.setItem(cle, val); } catch (e) {}
+  }
+  function memEffacer(cle) {
+    try { localStorage.removeItem(cle); } catch (e) {}
+  }
+
+  /* Entre dans l'app et charge les données */
+  function connecter(prenom) {
+    MOI = prenom;
+    ecranConnexion.classList.add('cache');
+    document.getElementById('accueil-bonjour').textContent = `Bonjour ${prenom} 👋`;
+    chargerDonnees();
+  }
+
+  document.getElementById('cx-entrer').addEventListener('click', async () => {
+    const identifiant = document.getElementById('cx-id').value.trim().toLowerCase();
+    const pin = document.getElementById('cx-pin').value.trim();
+    const erreur = document.getElementById('cx-erreur');
+    const afficheErr = (msg) => { erreur.textContent = msg; erreur.classList.add('visible'); };
+    erreur.classList.remove('visible');
+
+    if (!identifiant) { afficheErr("Indique ton identifiant 🙂"); return; }
+    if (!/^\d{4}$/.test(pin)) { afficheErr("Le code PIN doit faire 4 chiffres."); return; }
+
+    // Chercher le membre par identifiant
+    const { data: membre, error } = await sb
+      .from('membres').select('*').eq('identifiant', identifiant).maybeSingle();
+
+    if (error) { console.error(error); afficheErr("Erreur de connexion, réessaie."); return; }
+    if (!membre) { afficheErr("Identifiant inconnu. Ton compte doit être créé par le club."); return; }
+
+    if (!membre.pin_defini) {
+      // Première connexion : on enregistre le PIN choisi
+      const { error: errMaj } = await sb
+        .from('membres').update({ pin: pin, pin_defini: true }).eq('id', membre.id);
+      if (errMaj) { console.error(errMaj); afficheErr("Impossible d'enregistrer le PIN, réessaie."); return; }
+      reussirConnexion(membre);
+      montrerToast("Bienvenue ! Ton code PIN est enregistré 🎉");
+    } else {
+      // Connexion suivante : vérifier le PIN
+      if (membre.pin !== pin) { afficheErr("Code PIN incorrect."); return; }
+      reussirConnexion(membre);
+    }
+  });
+
+  function reussirConnexion(membre) {
+    MON_ID = membre.identifiant;
+    MON_UUID = membre.id;
+    memEcrire('assopilot_id', membre.identifiant);
+    memEcrire('assopilot_prenom', membre.prenom);
+    memEcrire('assopilot_uuid', membre.id);
+    // Le responsable voit le bouton +
+    const estResp = membre.role === 'responsable';
+    document.getElementById('switch-resp').checked = estResp;
+    document.getElementById('cx-pin').value = '';
+    connecter(membre.prenom);
+    majModeResponsable();
+  }
+
+  // Entrée clavier dans les champs
+  ['cx-id','cx-pin'].forEach(id =>
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('cx-entrer').click();
+    })
+  );
+
+  // Se déconnecter
+  document.getElementById('btn-deco').addEventListener('click', () => {
+    memEffacer('assopilot_id');
+    memEffacer('assopilot_prenom');
+    memEffacer('assopilot_uuid');
+    MON_ID = null; MON_UUID = null; MOI = "";
+    document.getElementById('cx-id').value = '';
+    document.getElementById('cx-pin').value = '';
+    ecranConnexion.classList.remove('cache');
+    afficher('accueil');
+  });
+
+  /* Remplit le menu "événement" du formulaire à partir des événements chargés */
+  function rafraichirMenuEvenements() {
+    const selEvent = document.getElementById('f-event');
+    selEvent.innerHTML = '<option value="">Aucun — coup de main libre</option>';
+    evenements.forEach(ev => {
+      const o = document.createElement('option');
+      o.value = ev.id;
+      o.textContent = ev.emoji + " " + ev.nom;
+      selEvent.appendChild(o);
+    });
+  }
+
+  /* Démarrage */
+  majModeResponsable();
+
+  // Déjà connu sur cet appareil ? On entre directement.
+  const idMemorise = memLire('assopilot_id');
+  const prenomMemorise = memLire('assopilot_prenom');
+  const uuidMemorise = memLire('assopilot_uuid');
+  if (idMemorise && prenomMemorise && uuidMemorise) {
+    MON_ID = idMemorise;
+    MON_UUID = uuidMemorise;
+    connecter(prenomMemorise);
+  }
+</script>
+</body>
+</html>
