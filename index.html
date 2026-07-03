@@ -372,7 +372,7 @@
 
   /* ---------- Carte réglage (mode responsable) ---------- */
   /* Petit logo en haut de l'accueil */
-  .app-logo { height: 40px; width: auto; display: block; margin: 4px auto 14px; }
+  .app-logo { height: 56px; width: auto; display: block; margin: 4px auto 16px; }
 
   /* Bandeau des annonces du club */
   #bandeau-annonces { margin-bottom: 18px; }
@@ -707,8 +707,8 @@
   .cx-logo .pilote { color: var(--vert); }
 
   /* Logo image (écran de connexion) */
-  .cx-logo-img { width: 180px; max-width: 60%; height: auto; margin: 0 auto 10px; display: block; }
-  .cx-logo-img.petit { width: 120px; }
+  .cx-logo-img { width: 240px; max-width: 75%; height: auto; margin: 0 auto 14px; display: block; }
+  .cx-logo-img.petit { width: 160px; }
   .cx-sous { color: var(--gris-texte); font-size: 15px; text-align: center; margin-bottom: 32px; line-height: 1.4; }
   .cx-carte {
     background: var(--carte);
@@ -890,17 +890,6 @@
       <div class="cx-carte">
         <button class="cx-bouton" id="cx-go-connexion">Se connecter</button>
         <button class="cx-lien" id="cx-go-inscription" style="margin-top:8px;">Nouveau ? Créer un compte</button>
-      </div>
-
-      <div class="cx-demo">
-        <div class="cx-demo-titre">🧪 Comptes de test</div>
-        <button class="cx-demo-ligne" data-id="lohan">
-          <strong>lohan</strong> — responsable · 1<sup>re</sup> connexion (choisit son PIN)
-        </button>
-        <button class="cx-demo-ligne" data-id="sarah">
-          <strong>sarah</strong> — bénévole · PIN <strong>1234</strong>
-        </button>
-        <button class="cx-reinit" id="cx-reinit">↺ Réinitialiser la démo</button>
       </div>
     </div>
 
@@ -2662,26 +2651,6 @@
     }
   }
   document.getElementById('i-fin-ok').addEventListener('click', () => montrerEtape('bienvenue'));
-
-  /* Cliquer un compte de test pré-remplit l'identifiant */
-  document.querySelectorAll('.cx-demo-ligne').forEach(l =>
-    l.addEventListener('click', () => {
-      document.getElementById('cx-id').value = l.dataset.id;
-      montrerEtape('identifiant');
-    })
-  );
-
-  /* Réinitialiser la démo : efface la mémoire et remet le PIN de lohan à "non défini" */
-  document.getElementById('cx-reinit').addEventListener('click', () => {
-    memEffacer('assopilot_session');
-    memEffacer('assopilot_dernier_id');
-    membreEnCours = null;
-    document.getElementById('cx-id').value = '';
-    pinSaisi = ""; majPoints();
-    montrerEtape('bienvenue');
-    ecranConnexion.classList.remove('cache');
-    montrerToast("Retour à l'écran de connexion ↺");
-  });
 
   /* --- Étape 2 : valider l'identifiant --- */
   let membreEnCours = null;     // le compte trouvé
