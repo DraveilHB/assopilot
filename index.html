@@ -1376,6 +1376,7 @@
 
   /* Identité de l'utilisateur connecté (rempli à la connexion) */
   let MOI = "";          // prénom affiché
+  let MON_ID = null;     // uuid du membre connecté (pour les inscriptions Supabase)
   let roleActuel = "benevole";   // rôle du compte connecté : benevole | responsable | webmaster
 
   /* Helpers de droits — un seul endroit pour décider qui peut quoi */
@@ -1401,8 +1402,8 @@
       precisions: row.precisions || "",
       cherche: row.cherche,
       cloture: row.cloture,
-      qui: noms,                        // prénoms des inscrits
-      jeParticipe: noms.includes(MOI),  // suis-je inscrit ?
+      qui: noms,                                          // prénoms des inscrits
+      jeParticipe: inscrits.some(i => i.membre_id === MON_ID),  // suis-je inscrit ? (par id)
     };
   }
 
@@ -1422,14 +1423,17 @@
     const { data: rows, error } = await sb.from('besoins').select('*').order('cree_le', { ascending: true });
     if (error) { console.error('Chargement besoins échoué', error); montrerToast("Connexion à la base impossible."); return; }
 
-    // 2) les inscriptions (avec le prénom du membre)
+    // 2) les inscriptions (prénom + id du membre)
     const { data: insc, error: err2 } = await sb
       .from('inscriptions')
-      .select('besoin_id, membres ( prenom )');
+      .select('besoin_id, membre_id, membres ( prenom )');
     const parBesoin = {};
     if (!err2 && insc) {
       insc.forEach(i => {
-        (parBesoin[i.besoin_id] = parBesoin[i.besoin_id] || []).push({ prenom: i.membres ? i.membres.prenom : null });
+        (parBesoin[i.besoin_id] = parBesoin[i.besoin_id] || []).push({
+          prenom: i.membres ? i.membres.prenom : null,
+          membre_id: i.membre_id
+        });
       });
     }
 
@@ -1825,6 +1829,7 @@
     const b = besoins.find(x => x.id === id);
     if (!b) return;
     if (b.cloture) { montrerToast("Ce besoin est clôturé."); return; }
+    if (!MON_ID) { montrerToast("Reconnecte-toi pour t'inscrire."); return; }
 
     if (b.jeParticipe) {
       // Se retirer : pop-up avec ton plus prudent
@@ -1835,10 +1840,11 @@
         labelOk: "Oui, me retirer",
         styleOk: "danger",
         labelNon: "Garder ma place",
-        onOk: () => {
-          b.jeParticipe = false;
-          b.qui = b.qui.filter(p => p !== MOI);
-          afficherBesoins();
+        onOk: async () => {
+          const { error } = await sb.from('inscriptions').delete()
+            .eq('besoin_id', id).eq('membre_id', MON_ID);
+          if (error) { console.error('Retrait échoué', error); montrerToast("Erreur, réessaie."); return; }
+          await chargerBesoins();
           montrerToast("Tu t'es retiré de cette mission.");
         }
       });
@@ -1851,13 +1857,17 @@
         labelOk: "Je confirme",
         styleOk: "principal",
         labelNon: "Annuler",
-        onOk: () => {
-          b.jeParticipe = true;
-          if (!b.qui.includes(MOI)) b.qui.push(MOI);
-          afficherBesoins();
-          const reste = b.cherche - b.qui.length;
+        onOk: async () => {
+          const { error } = await sb.from('inscriptions').insert({ besoin_id: id, membre_id: MON_ID });
+          if (error) {
+            // 23505 = déjà inscrit (contrainte unique) : pas grave
+            if (error.code !== '23505') { console.error('Inscription échouée', error); montrerToast("Erreur, réessaie."); return; }
+          }
+          await chargerBesoins();
+          const bMaj = besoins.find(x => x.id === id);
+          const reste = bMaj ? bMaj.cherche - bMaj.qui.length : 0;
           let msg;
-          if (b.qui.length >= b.cherche) {
+          if (bMaj && bMaj.qui.length >= bMaj.cherche) {
             msg = "🎉 Grâce à toi, cette mission est couverte ! Merci ❤️";
           } else if (reste === 1) {
             msg = "Merci ! Plus qu'une personne et c'est complet 🙌";
@@ -2494,6 +2504,7 @@
   /* Convertit une ligne "membres" Supabase en objet compte de l'app */
   function ligneVersMembre(row) {
     return {
+      id: row.id,                 // uuid, nécessaire pour les inscriptions
       identifiant: row.identifiant,
       prenom: row.prenom,
       nom: row.nom || "",
@@ -2526,6 +2537,7 @@
   /* Entre dans l'app */
   function connecter(membre) {
     MOI = membre.prenom;
+    MON_ID = membre.id || null;
     ecranConnexion.classList.add('cache');
     document.getElementById('accueil-bonjour').textContent = `Bonjour ${membre.prenom} 👋`;
     roleActuel = membre.role || 'benevole';
