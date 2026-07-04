@@ -947,7 +947,7 @@
 
     <!-- Étape 1 : Bienvenue -->
     <div class="cx-etape actif" data-etape="bienvenue">
-     <img src="logo.png" alt="AssoPilot" class="cx-logo-img" onerror="this.hidden=true" />
+      <img src="logo.png" alt="AssoPilot" class="cx-logo-img" onerror="this.hidden=true" />
       <div class="cx-sous">Le coup de main facile, pour tout le club.</div>
       <div class="cx-carte">
         <button class="cx-bouton" id="cx-go-connexion">Se connecter</button>
@@ -1628,15 +1628,15 @@
     const estResp = peutGerer();
     if (!estResp) return '';
     const ligneCloture = b.cloture
-      ? `<button onclick="rouvrirBesoin(${b.id})">🔓 Rouvrir</button>`
-      : `<button onclick="cloturerBesoin(${b.id})">✅ Clôturer</button>`;
+      ? `<button onclick="rouvrirBesoin('${b.id}')">🔓 Rouvrir</button>`
+      : `<button onclick="cloturerBesoin('${b.id}')">✅ Clôturer</button>`;
     return `
       <div class="carte-menu">
-        <button class="btn-menu" onclick="ouvrirMenu(event, ${b.id})">⋯</button>
+        <button class="btn-menu" onclick="ouvrirMenu(event, '${b.id}')">⋯</button>
         <div class="menu-actions" id="menu-${b.id}">
-          <button onclick="modifierBesoin(${b.id})">✏️ Modifier</button>
+          <button onclick="modifierBesoin('${b.id}')">✏️ Modifier</button>
           ${ligneCloture}
-          <button class="suppr" onclick="supprimerBesoin(${b.id})">🗑️ Supprimer</button>
+          <button class="suppr" onclick="supprimerBesoin('${b.id}')">🗑️ Supprimer</button>
         </div>
       </div>`;
   }
@@ -1651,9 +1651,9 @@
     } else if (couvert) {
       action = `<div class="badge-couvert">✓ Besoin couvert, merci à tous !</div>`;
     } else if (b.jeParticipe) {
-      action = `<button class="btn-aide inscrit" onclick="basculer(${b.id})">👍 Tu participes — me retirer</button>`;
+      action = `<button class="btn-aide inscrit" onclick="basculer('${b.id}')">👍 Tu participes — me retirer</button>`;
     } else {
-      action = `<button class="btn-aide" onclick="basculer(${b.id})">Je donne un coup de main</button>`;
+      action = `<button class="btn-aide" onclick="basculer('${b.id}')">Je donne un coup de main</button>`;
     }
 
     const tr = tempsRestant(b);
@@ -1738,9 +1738,9 @@
     } else if (couvert) {
       action = `<div class="badge-couvert">✓ Couvert, merci !</div>`;
     } else if (b.jeParticipe) {
-      action = `<button class="btn-aide inscrit" onclick="basculer(${b.id})">👍 Tu participes — me retirer</button>`;
+      action = `<button class="btn-aide inscrit" onclick="basculer('${b.id}')">👍 Tu participes — me retirer</button>`;
     } else {
-      action = `<button class="btn-aide" onclick="basculer(${b.id})">Je donne un coup de main</button>`;
+      action = `<button class="btn-aide" onclick="basculer('${b.id}')">Je donne un coup de main</button>`;
     }
     return `
       <div class="cdm ${couvert || b.cloture ? 'couvert' : ''} ${b.jeParticipe && !couvert && !b.cloture ? 'inscrit' : ''}">
