@@ -465,6 +465,16 @@
   .manque-plus { font-size: 12px; color: var(--gris-doux); margin-top: 8px; font-weight: 700; }
 
   /* Encart qui manque (fin) */
+  /* Croix de suppression d'événement (responsables) */
+  .ev-suppr {
+    flex: 0 0 auto; border: none; background: none; cursor: pointer;
+    font-size: 15px; color: var(--gris-doux); padding: 4px 8px;
+    border-radius: 8px; font-family: var(--police); line-height: 1;
+    transition: background .15s, color .15s;
+  }
+  .ev-suppr:hover { background: #fdf0ee; color: #b91c1c; }
+
+  /* Croix suppression événement (fin) */
   .reglage {
     background: var(--carte);
     border: 1px solid var(--bordure);
@@ -2344,8 +2354,40 @@
             <div class="ev-date">${dCap}${heure}</div>
           </div>
           <span class="ev-compte">${nb} coup${nb > 1 ? 's' : ''} de main</span>
+          ${peutGerer() ? `<button class="ev-suppr" onclick="supprimerEvenement('${ev.id}')" title="Supprimer l'événement">✕</button>` : ''}
         </div>`;
     }).join('');
+  }
+
+  /* Supprime un événement ET tous ses besoins (responsables) */
+  function supprimerEvenement(id) {
+    const ev = evenements.find(e => e.id === id);
+    if (!ev) return;
+    const nbBesoins = besoins.filter(b => b.event === id).length;
+    ouvrirModale({
+      emoji: "🗑️",
+      titre: "Supprimer cet événement ?",
+      texte: nbBesoins > 0
+        ? `« ${ev.nom} » et ses ${nbBesoins} besoin(s) seront supprimés définitivement.`
+        : `« ${ev.nom} » sera supprimé définitivement.`,
+      labelOk: "Oui, supprimer",
+      styleOk: "danger",
+      labelNon: "Annuler",
+      onOk: async () => {
+        // 1) inscriptions des besoins de cet événement
+        const idsBesoins = besoins.filter(b => b.event === id).map(b => b.id);
+        if (idsBesoins.length) {
+          await sb.from('inscriptions').delete().in('besoin_id', idsBesoins);
+          await sb.from('besoins').delete().eq('evenement_id', id);
+        }
+        // 2) l'événement lui-même
+        const { error } = await sb.from('evenements').delete().eq('id', id);
+        if (error) { console.error('Suppression événement échouée', error); montrerToast("Erreur, réessaie."); return; }
+        await chargerEvenements();
+        await chargerBesoins();
+        montrerToast("Événement supprimé.");
+      }
+    });
   }
 
   /* Créer l'événement */
