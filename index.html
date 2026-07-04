@@ -228,17 +228,28 @@
   .menu-actions button.suppr { color: #b91c1c; }
 
   .pole {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     font-size: 11px;
-    font-weight: 700;
-    padding: 3px 9px;
+    font-weight: 800;
+    padding: 4px 11px;
     border-radius: 20px;
     white-space: nowrap;
+    letter-spacing: .2px;
   }
-  .pole-sportif    { background: #dbeafe; color: #1d4ed8; }
-  .pole-logistique { background: #ffedd5; color: #c2410c; }
-  .pole-com        { background: #fae8ff; color: #a21caf; }
-  .pole-financier  { background: #dcfce7; color: #15803d; }
+  /* Petit point coloré devant le nom du pôle */
+  .pole::before {
+    content: "";
+    width: 7px; height: 7px; border-radius: 50%;
+    background: currentColor; opacity: .9;
+    display: inline-block;
+  }
+  /* Couleurs marquées : fond teinté soutenu + texte foncé lisible */
+  .pole-sportif      { background: #dbe9fe; color: #1e40af; }
+  .pole-evenementiel { background: #ffe4cc; color: #b8410a; }
+  .pole-com          { background: #f7ddff; color: #92189e; }
+  .pole-admin        { background: #cdf3d8; color: #12703a; }
 
   /* Pastille d'urgence */
   .urgence {
@@ -403,6 +414,57 @@
   }
 
   /* Bandeau des annonces du club (fin) */
+  /* Bloc responsable de mission */
+  .resp-bloc {
+    background: var(--fond); border: 1px solid var(--bordure);
+    border-radius: 12px; padding: 10px 12px; margin: 2px 0 12px;
+  }
+  .resp-info { font-size: 13px; color: var(--gris-texte); }
+  .resp-info strong { color: var(--sapin); }
+  .resp-liens { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .resp-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 800; text-decoration: none;
+    padding: 7px 12px; border-radius: 10px;
+    background: #fff; border: 1px solid var(--bordure); color: var(--sapin);
+    transition: border-color .15s;
+  }
+  .resp-btn:hover { border-color: var(--vert); }
+  .resp-btn.wa { background: #eafaf0; border-color: #b7e4c7; color: #12703a; }
+
+  /* Bloc responsable de mission (fin) */
+  /* Aperçu des besoins types (création d'événement) */
+  .apercu-types {
+    background: #eef7f0; border: 1px solid #cdeed9;
+    border-radius: 12px; padding: 12px 14px; margin-bottom: 18px;
+  }
+  .apercu-titre { font-size: 12px; font-weight: 800; color: #12703a; margin-bottom: 8px; }
+  .apercu-puce {
+    display: inline-block; font-size: 12px; font-weight: 700;
+    background: #fff; border: 1px solid #cdeed9; color: #15663a;
+    padding: 4px 10px; border-radius: 20px; margin: 0 6px 6px 0;
+  }
+
+  /* Aperçu besoins types (fin) */
+  /* Encart "qui manque ?" (dirigeants) */
+  #encart-manque { margin-bottom: 18px; }
+  .manque-carte {
+    background: #fff; border: 1px solid var(--bordure);
+    border-left: 4px solid #e9920c;
+    border-radius: 14px; padding: 14px 16px;
+  }
+  .manque-carte.ok { border-left-color: var(--vert); font-size: 14px; font-weight: 700; color: var(--vert-fonce); }
+  .manque-titre { font-size: 14px; font-weight: 800; color: var(--sapin); margin-bottom: 10px; }
+  .manque-ligne { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid var(--bordure); }
+  .manque-ligne:first-of-type { border-top: none; }
+  .manque-nom { font-size: 13px; font-weight: 700; color: var(--sapin); }
+  .manque-badge { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 10px; }
+  .manque-badge.urg-urgent { background: #fdf0ee; color: #a23226; }
+  .manque-badge.urg-bientot { background: #fdf6e9; color: #b5710c; }
+  .manque-badge.urg-tranquille { background: #eef7f0; color: #1a6e3f; }
+  .manque-plus { font-size: 12px; color: var(--gris-doux); margin-top: 8px; font-weight: 700; }
+
+  /* Encart qui manque (fin) */
   .reglage {
     background: var(--carte);
     border: 1px solid var(--bordure);
@@ -1063,6 +1125,8 @@
         <!-- Bandeau des annonces du club -->
         <div id="bandeau-annonces"><!-- rempli par JS --></div>
 
+        <div id="encart-manque" style="display:none;"><!-- rempli par JS, dirigeants seulement --></div>
+
         <div class="filtres" id="filtres">
           <button class="filtre actif" data-filtre="tous">Tous</button>
           <button class="filtre" data-filtre="aujourdhui">Aujourd'hui</button>
@@ -1238,9 +1302,9 @@
           <label for="f-pole">Pôle</label>
           <select id="f-pole">
             <option value="sportif">Sportif</option>
-            <option value="logistique">Logistique</option>
+            <option value="evenementiel">Événementiel</option>
             <option value="com">Communication</option>
-            <option value="financier">Financier</option>
+            <option value="admin">Financier / Administratif</option>
           </select>
         </div>
 
@@ -1259,6 +1323,13 @@
             <option value="urgent">🔴 Forcer : Urgent</option>
             <option value="bientot">🟠 Forcer : Bientôt</option>
             <option value="tranquille">🟢 Forcer : Tranquille</option>
+          </select>
+        </div>
+
+        <div class="champ">
+          <label for="f-responsable">Responsable de la mission <span style="font-weight:600; color:var(--gris-doux);">(facultatif)</span></label>
+          <select id="f-responsable">
+            <option value="">Aucun responsable désigné</option>
           </select>
         </div>
 
@@ -1307,6 +1378,8 @@
         <button class="modele" data-type="fete"    data-emoji="🎉">🎉 Fête</button>
         <button class="modele" data-type="autre"   data-emoji="📅">✏️ Autre</button>
       </div>
+
+      <div id="apercu-besoins-types" class="apercu-types" style="display:none;"></div>
 
       <div class="champ">
         <label for="fe-nom">Nom de l'événement</label>
@@ -1390,6 +1463,8 @@
   /* Convertit une ligne Supabase en objet "besoin" utilisé par l'app */
   function ligneVersBesoin(row, inscrits) {
     const noms = inscrits.map(i => i.prenom).filter(Boolean);
+    // Résout le responsable depuis le cache des membres (id -> infos de contact)
+    const resp = row.responsable_id ? comptesDemo.find(c => c.id === row.responsable_id) : null;
     return {
       id: row.id,
       nom: row.nom,
@@ -1402,6 +1477,8 @@
       precisions: row.precisions || "",
       cherche: row.cherche,
       cloture: row.cloture,
+      responsableId: row.responsable_id || null,
+      responsable: resp ? { prenom: resp.prenom, nom: resp.nom, tel: resp.tel, email: resp.email } : null,
       qui: noms,                                          // prénoms des inscrits
       jeParticipe: inscrits.some(i => i.membre_id === MON_ID),  // suis-je inscrit ? (par id)
     };
@@ -1442,7 +1519,7 @@
     afficherBesoins();
   }
 
-  const labelsPole = { sportif: "Sportif", logistique: "Logistique", com: "Communication", financier: "Financier" };
+  const labelsPole = { sportif: "Sportif", evenementiel: "Événementiel", com: "Communication", admin: "Financier / Administratif" };
 
   /* Niveaux d'urgence : pastille (emoji + mot + couleur) et ordre de tri */
   const urgences = {
@@ -1465,11 +1542,11 @@
      (colonnes = noms de la table Supabase) */
   const besoinsDemo = [
     { nom: "Table de marque",          pole: "sportif",    date_iso: dansNjours(1),  duree: "2 h", cherche: 1, urgence_forcee: null, precisions: "" },
-    { nom: "Buvette",                  pole: "logistique", date_iso: dansNjours(1),  duree: "3 h", cherche: 2, urgence_forcee: null, precisions: "Rendez-vous à l'entrée côté parking." },
-    { nom: "Installation de la salle", pole: "logistique", date_iso: dansNjours(1),  duree: "1 h", cherche: 2, urgence_forcee: null, precisions: "" },
+    { nom: "Buvette",                  pole: "evenementiel", date_iso: dansNjours(1),  duree: "3 h", cherche: 2, urgence_forcee: null, precisions: "Rendez-vous à l'entrée côté parking." },
+    { nom: "Installation de la salle", pole: "evenementiel", date_iso: dansNjours(1),  duree: "1 h", cherche: 2, urgence_forcee: null, precisions: "" },
     { nom: "Photos pour les réseaux",  pole: "com",        date_iso: dansNjours(18), duree: "1 h", cherche: 1, urgence_forcee: null, precisions: "Appareil fourni par le club." },
-    { nom: "Transport du matériel",    pole: "logistique", date_iso: dansNjours(18), duree: "2 h", cherche: 4, urgence_forcee: null, precisions: "" },
-    { nom: "Récupérer les maillots",   pole: "logistique", date_iso: dansNjours(3),  duree: "1 h", cherche: 1, urgence_forcee: null, precisions: "Au pressing de la place, avant 18h." },
+    { nom: "Transport du matériel",    pole: "evenementiel", date_iso: dansNjours(18), duree: "2 h", cherche: 4, urgence_forcee: null, precisions: "" },
+    { nom: "Récupérer les maillots",   pole: "evenementiel", date_iso: dansNjours(3),  duree: "1 h", cherche: 1, urgence_forcee: null, precisions: "Au pressing de la place, avant 18h." },
   ];
 
   /* URGENCE AUTOMATIQUE : calculée selon le nombre de jours avant l'échéance.
@@ -1601,6 +1678,7 @@
           <div class="jauge"><div class="jauge-barre" style="width:${pct}%"></div></div>
         </div>
         ${blocPrecisions(b)}
+        ${blocResponsable(b)}
         ${listeParticipants(b)}
         ${action}
       </div>`;
@@ -1620,6 +1698,34 @@
   function blocPrecisions(b) {
     if (!b.precisions) return '';
     return `<div class="precisions">💬 ${b.precisions}</div>`;
+  }
+
+  /* Nettoie un numéro de téléphone pour un lien WhatsApp (format international) */
+  function telPourWhatsapp(tel) {
+    let t = (tel || '').replace(/[^0-9+]/g, '');
+    if (t.startsWith('0')) t = '33' + t.slice(1);   // France : 0X -> 33X
+    return t.replace('+', '');
+  }
+
+  /* Bloc "Responsable" avec boutons Appeler / WhatsApp / Email */
+  function blocResponsable(b) {
+    if (!b.responsable) return '';
+    const r = b.responsable;
+    const nom = `${r.prenom}${r.nom ? ' ' + r.nom : ''}`;
+    let liens = '';
+    if (r.tel) {
+      const telClean = r.tel.replace(/[^0-9+]/g, '');
+      liens += `<a class="resp-btn" href="tel:${telClean}">📞 Appeler</a>`;
+      liens += `<a class="resp-btn wa" href="https://wa.me/${telPourWhatsapp(r.tel)}" target="_blank" rel="noopener">💬 WhatsApp</a>`;
+    }
+    if (r.email) {
+      liens += `<a class="resp-btn" href="mailto:${r.email}">✉️ Email</a>`;
+    }
+    return `
+      <div class="resp-bloc">
+        <div class="resp-info">👤 Responsable : <strong>${nom}</strong></div>
+        ${liens ? `<div class="resp-liens">${liens}</div>` : ''}
+      </div>`;
   }
 
   /* Coup de main compact, affiché à l'intérieur d'une carte événement */
@@ -1655,6 +1761,7 @@
           <div class="jauge"><div class="jauge-barre" style="width:${pct}%"></div></div>
         </div>
         ${blocPrecisions(b)}
+        ${blocResponsable(b)}
         ${listeParticipants(b)}
         ${action}
       </div>`;
@@ -1755,6 +1862,45 @@
     zone.innerHTML = miens.length
       ? miens.map(carteBesoin).join('')
       : `<div class="vide"><div class="icone">🙌</div><p>Tu ne t'es proposé sur aucune mission pour l'instant.</p></div>`;
+
+    // --- Encart "qui manque ?" (dirigeants) ---
+    afficherEncartManque();
+  }
+
+  /* Encart récapitulatif des missions non couvertes (visible pour les dirigeants) */
+  function afficherEncartManque() {
+    const encart = document.getElementById('encart-manque');
+    if (!encart) return;
+    if (!peutGerer()) { encart.style.display = 'none'; return; }
+
+    // Missions à venir, non clôturées, non couvertes
+    const manquantes = besoins
+      .filter(b => !b.cloture && b.qui.length < b.cherche)
+      .filter(b => { const j = joursAvant(b); return j === null || j >= 0; })
+      .sort((a, b) => urgences[urgenceDe(a)].rang - urgences[urgenceDe(b)].rang);
+
+    if (!manquantes.length) {
+      encart.style.display = 'block';
+      encart.innerHTML = `<div class="manque-carte ok">✅ Tout est couvert pour le moment. Bravo !</div>`;
+      return;
+    }
+
+    const total = manquantes.reduce((s, b) => s + (b.cherche - b.qui.length), 0);
+    const lignes = manquantes.slice(0, 5).map(b => {
+      const reste = b.cherche - b.qui.length;
+      return `<div class="manque-ligne">
+        <span class="manque-nom">${iconeMission(b.nom)} ${b.nom}</span>
+        <span class="manque-badge urg-${urgenceDe(b)}">${reste} place${reste > 1 ? 's' : ''}</span>
+      </div>`;
+    }).join('');
+    const reste = manquantes.length > 5 ? `<div class="manque-plus">+ ${manquantes.length - 5} autre(s)…</div>` : '';
+
+    encart.style.display = 'block';
+    encart.innerHTML = `
+      <div class="manque-carte">
+        <div class="manque-titre">🔎 Il manque du monde (${total} place${total > 1 ? 's' : ''})</div>
+        ${lignes}${reste}
+      </div>`;
   }
 
   /* ===========================================================
@@ -1955,6 +2101,7 @@
 
   function ouvrirPanneau() {
     fermerTout();
+    rafraichirMenuResponsables();
     voile.classList.add('ouvert');
     panneau.classList.add('ouvert');
   }
@@ -2060,12 +2207,12 @@
   let qChoixFreq = null;
 
   const modelesMission = {
-    salle:    { nom: "Responsable de salle",        pole: "logistique", duree: "2 h", cherche: 1 },
+    salle:    { nom: "Responsable de salle",        pole: "evenementiel", duree: "2 h", cherche: 1 },
     table:    { nom: "Table de marque (2 pers.)",   pole: "sportif",    duree: "2 h", cherche: 2 },
-    buvette:  { nom: "Tenir la buvette",            pole: "logistique", duree: "2 h", cherche: 2 },
+    buvette:  { nom: "Tenir la buvette",            pole: "evenementiel", duree: "2 h", cherche: 2 },
     arbitrage:{ nom: "Arbitrage",                   pole: "sportif",    duree: "2 h", cherche: 1 },
-    courses:  { nom: "Faire les courses",           pole: "logistique", duree: "1 h", cherche: 1 },
-    local:    { nom: "Ranger le local",             pole: "logistique", duree: "1 h", cherche: 2 },
+    courses:  { nom: "Faire les courses",           pole: "evenementiel", duree: "1 h", cherche: 1 },
+    local:    { nom: "Ranger le local",             pole: "evenementiel", duree: "1 h", cherche: 2 },
     coaching: { nom: "Coup de main coaching",       pole: "sportif",    duree: "2 h", cherche: 1 },
     feuille:  { nom: "Mettre à jour la feuille de match", pole: "sportif", duree: "5 min", cherche: 1 },
   };
@@ -2100,12 +2247,25 @@
         const noms = { match: "Match ", tournoi: "Tournoi ", stage: "Stage ", reunion: "Réunion", fete: "Fête du club" };
         champNom.value = noms[btn.dataset.type] || '';
       }
+      // Aperçu des besoins types qui seront créés automatiquement
+      const apercu = document.getElementById('apercu-besoins-types');
+      const modeles = besoinsTypesParEvent[btn.dataset.type] || [];
+      if (modeles.length) {
+        apercu.style.display = 'block';
+        apercu.innerHTML = `<div class="apercu-titre">✨ Besoins créés automatiquement :</div>` +
+          modeles.map(m => `<span class="apercu-puce">${iconeMission(m.nom)} ${m.nom}</span>`).join('');
+      } else {
+        apercu.style.display = 'none';
+        apercu.innerHTML = '';
+      }
     })
   );
 
   function resetFormEvent() {
     typeEventChoisi = null;
     document.querySelectorAll('#types-event .modele').forEach(x => x.classList.remove('choisi'));
+    const apercu = document.getElementById('apercu-besoins-types');
+    if (apercu) { apercu.style.display = 'none'; apercu.innerHTML = ''; }
     document.getElementById('fe-nom').value = '';
     document.getElementById('fe-date').value = '';
     document.getElementById('fe-heure').value = '';
@@ -2121,6 +2281,21 @@
       o.textContent = ev.emoji + " " + ev.nom;
       sel.appendChild(o);
     });
+  }
+
+  /* Remplit le menu "responsable" avec les membres validés */
+  function rafraichirMenuResponsables() {
+    const sel = document.getElementById('f-responsable');
+    if (!sel) return;
+    const actuel = sel.value;
+    sel.innerHTML = '<option value="">Aucun responsable désigné</option>';
+    comptesDemo.filter(c => c.statut === 'valide').forEach(m => {
+      const o = document.createElement('option');
+      o.value = m.id;
+      o.textContent = `${m.prenom}${m.nom ? ' ' + m.nom : ''}`;
+      sel.appendChild(o);
+    });
+    sel.value = actuel;
   }
 
   /* Affiche la liste des événements dans l'onglet Événements */
@@ -2150,6 +2325,35 @@
   }
 
   /* Créer l'événement */
+  /* Besoins types générés automatiquement selon le type d'événement.
+     (le club peut ainsi créer un "Match à domicile" et obtenir ses besoins d'un coup) */
+  const besoinsTypesParEvent = {
+    match: [
+      { nom: "Table de marque",        pole: "sportif",      duree: "2 h",   cherche: 2 },
+      { nom: "Responsable de salle",   pole: "evenementiel", duree: "2 h",   cherche: 1 },
+      { nom: "Tenir la buvette",       pole: "evenementiel", duree: "2 h",   cherche: 2 },
+      { nom: "Feuille de match",       pole: "sportif",      duree: "5 min", cherche: 1 },
+    ],
+    tournoi: [
+      { nom: "Tenir la buvette",       pole: "evenementiel", duree: "3 h", cherche: 3 },
+      { nom: "Installation de la salle",pole: "evenementiel",duree: "1 h", cherche: 3 },
+      { nom: "Table de marque",        pole: "sportif",      duree: "3 h", cherche: 2 },
+      { nom: "Photos pour les réseaux",pole: "com",          duree: "2 h", cherche: 1 },
+    ],
+    fete: [
+      { nom: "Tenir la buvette",       pole: "evenementiel", duree: "3 h", cherche: 3 },
+      { nom: "Installation",           pole: "evenementiel", duree: "2 h", cherche: 4 },
+      { nom: "Rangement",              pole: "evenementiel", duree: "1 h", cherche: 4 },
+      { nom: "Photos pour les réseaux",pole: "com",          duree: "1 h", cherche: 1 },
+    ],
+    stage: [
+      { nom: "Coup de main coaching",  pole: "sportif",      duree: "2 h", cherche: 2 },
+      { nom: "Goûter des enfants",     pole: "evenementiel", duree: "1 h", cherche: 1 },
+    ],
+    reunion: [],
+    autre: [],
+  };
+
   document.getElementById('btn-publier-event').addEventListener('click', () => {
     const nom   = document.getElementById('fe-nom').value.trim();
     const dateISO = document.getElementById('fe-date').value;
@@ -2158,16 +2362,33 @@
     if (!nom) { montrerToast("Donne un nom à l'événement 🙂"); return; }
     if (!dateISO) { montrerToast("Choisis une date 🙂"); return; }
 
+    const type = typeEventChoisi ? typeEventChoisi.type : null;
     const emoji = typeEventChoisi ? typeEventChoisi.emoji : "📅";
     const id = "ev" + (prochainEventId++);
     evenements.push({ id, nom, emoji, dateISO, heure: heure || "", quand: evenements.length + 1 });
+
+    // Génère les besoins types associés au type d'événement
+    const modeles = (type && besoinsTypesParEvent[type]) ? besoinsTypesParEvent[type] : [];
+    modeles.forEach(m => {
+      besoins.unshift({
+        id: prochainId++,
+        nom: m.nom, event: id, pole: m.pole,
+        poleLabel: labelsPole[m.pole],
+        dateISO, duree: m.duree,
+        urgenceForcee: null, importance: 1,
+        precisions: "", responsableId: null, responsable: null,
+        cherche: m.cherche, qui: [], jeParticipe: false
+      });
+    });
 
     resetFormEvent();
     fermerTout();
     rafraichirMenuEvenements();
     afficherBesoins();
     afficherOngletEvenements();
-    montrerToast("Événement créé ! 📅");
+    montrerToast(modeles.length
+      ? `Événement créé avec ${modeles.length} besoins types ! 📅`
+      : "Événement créé ! 📅");
   });
 
   /* Adapte l'interface au rôle réel du compte connecté */
@@ -2407,6 +2628,8 @@
     document.getElementById('f-cherche').value = 2;
     document.getElementById('f-pole').value = 'sportif';
     document.getElementById('f-urgence').value = 'auto';
+    const selResp = document.getElementById('f-responsable');
+    if (selResp) selResp.value = '';
     document.querySelectorAll('#modeles .modele').forEach(x => x.classList.remove('choisi'));
     allerEtape(1);
   }
@@ -2430,6 +2653,8 @@
     document.getElementById('f-urgence').value = b.urgenceForcee || 'auto';
     allerEtape(1);
     ouvrirPanneau();
+    // ouvrirPanneau a rempli le menu : on présélectionne le responsable actuel
+    document.getElementById('f-responsable').value = b.responsableId || '';
   }
 
   document.getElementById('btn-publier').addEventListener('click', () => {
@@ -2441,6 +2666,9 @@
     const niveau = document.getElementById('f-urgence').value;
     const precisions = document.getElementById('f-precisions').value.trim();
     const cherche = parseInt(document.getElementById('f-cherche').value, 10);
+    const respId = document.getElementById('f-responsable').value || null;
+    const respMembre = respId ? comptesDemo.find(c => c.id === respId) : null;
+    const respObj = respMembre ? { prenom: respMembre.prenom, nom: respMembre.nom, tel: respMembre.tel, email: respMembre.email } : null;
 
     if (!nom) { montrerToast("Donne un nom au besoin 🙂"); return; }
     if (!cherche || cherche < 1) { montrerToast("Indique au moins 1 bénévole."); return; }
@@ -2460,6 +2688,8 @@
         b.duree = duree || "—";
         b.urgenceForcee = niveau === "auto" ? null : niveau;
         b.precisions = precisions;
+        b.responsableId = respId;
+        b.responsable = respObj;
         // si on demande moins de bénévoles que d'inscrits, on garde au moins le nb d'inscrits
         b.cherche = Math.max(cherche, b.qui.length);
       }
@@ -2479,6 +2709,8 @@
         urgenceForcee: niveau === "auto" ? null : niveau,
         importance: 1,
         precisions,
+        responsableId: respId,
+        responsable: respObj,
         cherche,
         qui: [],
         jeParticipe: false
