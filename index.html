@@ -1529,10 +1529,29 @@
   };
 
   /* Événements du club (fictifs) */
-  const evenements = [
-    { id: "u15",  nom: "Match U15 Garçons", emoji: "🏐", dateISO: dansNjours(1),  heure: "15:00", quand: 1 },
-    { id: "fete", nom: "Fête du club",      emoji: "🎉", dateISO: dansNjours(18), heure: "",      quand: 2 },
-  ];
+  let evenements = [];   // cache rempli depuis Supabase au démarrage
+
+  /* Convertit une ligne Supabase en objet "événement" de l'app */
+  function ligneVersEvenement(row, i) {
+    return {
+      id: row.id,
+      nom: row.nom,
+      emoji: row.emoji || "📅",
+      type: row.type || null,
+      dateISO: row.date_iso,
+      heure: row.heure || "",
+      quand: i + 1,
+    };
+  }
+
+  /* Charge les événements depuis Supabase dans le cache */
+  async function chargerEvenements() {
+    const { data, error } = await sb.from('evenements').select('*').order('date_iso', { ascending: true });
+    if (error) { console.error('Chargement événements échoué', error); return; }
+    evenements = (data || []).map(ligneVersEvenement);
+    rafraichirMenuEvenements();
+    afficherOngletEvenements();
+  }
 
   /* Besoins (fictifs) */
   let prochainId = 7;
@@ -1935,9 +1954,12 @@
       labelOk: "Oui, supprimer",
       styleOk: "danger",
       labelNon: "Annuler",
-      onOk: () => {
-        besoins = besoins.filter(x => x.id !== id);
-        afficherBesoins();
+      onOk: async () => {
+        // On retire d'abord les inscriptions liées, puis le besoin
+        await sb.from('inscriptions').delete().eq('besoin_id', id);
+        const { error } = await sb.from('besoins').delete().eq('id', id);
+        if (error) { console.error('Suppression échouée', error); montrerToast("Erreur, réessaie."); return; }
+        await chargerBesoins();
         montrerToast("Besoin supprimé.");
       }
     });
@@ -1954,20 +1976,22 @@
       labelOk: "Oui, clôturer",
       styleOk: "principal",
       labelNon: "Annuler",
-      onOk: () => {
-        b.cloture = true;
-        afficherBesoins();
+      onOk: async () => {
+        const { error } = await sb.from('besoins').update({ cloture: true }).eq('id', id);
+        if (error) { console.error('Clôture échouée', error); montrerToast("Erreur, réessaie."); return; }
+        await chargerBesoins();
         montrerToast("Besoin clôturé ✅");
       }
     });
   }
 
-  function rouvrirBesoin(id) {
+  async function rouvrirBesoin(id) {
     const b = besoins.find(x => x.id === id);
     if (!b) return;
     document.querySelectorAll('.menu-actions').forEach(m => m.classList.remove('ouvert'));
-    b.cloture = false;
-    afficherBesoins();
+    const { error } = await sb.from('besoins').update({ cloture: false }).eq('id', id);
+    if (error) { console.error('Réouverture échouée', error); montrerToast("Erreur, réessaie."); return; }
+    await chargerBesoins();
     montrerToast("Besoin rouvert 🔓");
   }
 
@@ -2354,7 +2378,7 @@
     autre: [],
   };
 
-  document.getElementById('btn-publier-event').addEventListener('click', () => {
+  document.getElementById('btn-publier-event').addEventListener('click', async () => {
     const nom   = document.getElementById('fe-nom').value.trim();
     const dateISO = document.getElementById('fe-date').value;
     const heure = document.getElementById('fe-heure').value;
@@ -2364,28 +2388,32 @@
 
     const type = typeEventChoisi ? typeEventChoisi.type : null;
     const emoji = typeEventChoisi ? typeEventChoisi.emoji : "📅";
-    const id = "ev" + (prochainEventId++);
-    evenements.push({ id, nom, emoji, dateISO, heure: heure || "", quand: evenements.length + 1 });
 
-    // Génère les besoins types associés au type d'événement
+    // 1) Crée l'événement dans Supabase et récupère son id
+    const { data: evData, error: evErr } = await sb.from('evenements')
+      .insert({ nom, type, emoji, date_iso: dateISO, heure: heure || null })
+      .select().single();
+    if (evErr) { console.error('Création événement échouée', evErr); montrerToast("Erreur : événement non créé."); return; }
+
+    const evId = evData.id;
+
+    // 2) Crée les besoins types associés, rattachés à cet événement
     const modeles = (type && besoinsTypesParEvent[type]) ? besoinsTypesParEvent[type] : [];
-    modeles.forEach(m => {
-      besoins.unshift({
-        id: prochainId++,
-        nom: m.nom, event: id, pole: m.pole,
-        poleLabel: labelsPole[m.pole],
-        dateISO, duree: m.duree,
-        urgenceForcee: null, importance: 1,
-        precisions: "", responsableId: null, responsable: null,
-        cherche: m.cherche, qui: [], jeParticipe: false
-      });
-    });
+    if (modeles.length) {
+      const lignes = modeles.map(m => ({
+        nom: m.nom, pole: m.pole, date_iso: dateISO, duree: m.duree,
+        cherche: m.cherche, urgence_forcee: null, precisions: "",
+        evenement_id: evId
+      }));
+      const { error: bErr } = await sb.from('besoins').insert(lignes);
+      if (bErr) console.error('Création besoins types échouée', bErr);
+    }
 
+    // 3) Recharge tout depuis Supabase
     resetFormEvent();
     fermerTout();
-    rafraichirMenuEvenements();
-    afficherBesoins();
-    afficherOngletEvenements();
+    await chargerEvenements();
+    await chargerBesoins();
     montrerToast(modeles.length
       ? `Événement créé avec ${modeles.length} besoins types ! 📅`
       : "Événement créé ! 📅");
@@ -2657,7 +2685,7 @@
     document.getElementById('f-responsable').value = b.responsableId || '';
   }
 
-  document.getElementById('btn-publier').addEventListener('click', () => {
+  document.getElementById('btn-publier').addEventListener('click', async () => {
     const nom    = document.getElementById('f-nom').value.trim();
     const event  = document.getElementById('f-event').value || null;
     const pole   = document.getElementById('f-pole').value;
@@ -2667,8 +2695,6 @@
     const precisions = document.getElementById('f-precisions').value.trim();
     const cherche = parseInt(document.getElementById('f-cherche').value, 10);
     const respId = document.getElementById('f-responsable').value || null;
-    const respMembre = respId ? comptesDemo.find(c => c.id === respId) : null;
-    const respObj = respMembre ? { prenom: respMembre.prenom, nom: respMembre.nom, tel: respMembre.tel, email: respMembre.email } : null;
 
     if (!nom) { montrerToast("Donne un nom au besoin 🙂"); return; }
     if (!cherche || cherche < 1) { montrerToast("Indique au moins 1 bénévole."); return; }
@@ -2676,49 +2702,35 @@
     const ev = evenements.find(e => e.id === event);
     const dateFinale = ev ? ev.dateISO : (dateISO || null);
 
+    // Colonnes de la table besoins dans Supabase
+    const ligne = {
+      nom, pole,
+      date_iso: dateFinale,
+      duree: duree || null,
+      urgence_forcee: niveau === "auto" ? null : niveau,
+      precisions: precisions || null,
+      cherche,
+      evenement_id: event,
+      responsable_id: respId,
+    };
+
     if (besoinEnEdition !== null) {
       // --- MODIFICATION ---
-      const b = besoins.find(x => x.id === besoinEnEdition);
-      if (b) {
-        b.nom = nom;
-        b.event = event;
-        b.pole = pole;
-        b.poleLabel = labelsPole[pole];
-        b.dateISO = dateFinale;
-        b.duree = duree || "—";
-        b.urgenceForcee = niveau === "auto" ? null : niveau;
-        b.precisions = precisions;
-        b.responsableId = respId;
-        b.responsable = respObj;
-        // si on demande moins de bénévoles que d'inscrits, on garde au moins le nb d'inscrits
-        b.cherche = Math.max(cherche, b.qui.length);
-      }
+      const { error } = await sb.from('besoins').update(ligne).eq('id', besoinEnEdition);
+      if (error) { console.error('Modification besoin échouée', error); montrerToast("Erreur : besoin non modifié."); return; }
       resetPanneauCreation();
       fermerPanneau();
       afficher('accueil');
-      afficherBesoins();
+      await chargerBesoins();
       montrerToast("Besoin mis à jour ✏️");
     } else {
       // --- CRÉATION ---
-      besoins.unshift({
-        id: prochainId++,
-        nom, event, pole,
-        poleLabel: labelsPole[pole],
-        dateISO: dateFinale,
-        duree: duree || "—",
-        urgenceForcee: niveau === "auto" ? null : niveau,
-        importance: 1,
-        precisions,
-        responsableId: respId,
-        responsable: respObj,
-        cherche,
-        qui: [],
-        jeParticipe: false
-      });
+      const { error } = await sb.from('besoins').insert(ligne);
+      if (error) { console.error('Création besoin échouée', error); montrerToast("Erreur : besoin non créé."); return; }
       resetPanneauCreation();
       fermerPanneau();
       afficher('accueil');
-      afficherBesoins();
+      await chargerBesoins();
       montrerToast("Besoin publié ! 🎉");
     }
   });
@@ -2790,6 +2802,7 @@
     // Charge les vraies données depuis Supabase (amorce la démo au 1er lancement)
     (async () => {
       await amorcerDemoSiVide();
+      await chargerEvenements();
       await chargerBesoins();
       await chargerAnnonces();
     })();
