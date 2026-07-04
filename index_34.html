@@ -1,0 +1,2932 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AssoPilot</title>
+<!-- Bibliothèque Supabase (chargée depuis le CDN officiel) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ===========================================================
+     ASSOPILOT — SPRINT 1
+     La boucle cliquable, sans base de données.
+     Besoin ouvert -> je me propose -> jauge -> couvert.
+     =========================================================== */
+
+  :root {
+    /* Couleurs — direction "fusion" : crème chaleureux + vert sapin sophistiqué */
+    --vert:        #16a34a;   /* vert vif : actions, boutons, jauges */
+    --vert-fonce:  #15663a;   /* vert sapin : éléments structurels, accents */
+    --sapin:       #15321f;   /* presque-noir verdâtre : textes forts, filtre actif */
+    --bleu-nuit:   #15321f;   /* (conservé pour compat) -> sapin profond */
+    --gris-texte:  #5c6b62;   /* gris vert doux : texte secondaire */
+    --gris-doux:   #a39d8e;   /* taupe : labels, légendes */
+    --fond:        #f7f5f0;   /* crème : fond de l'app */
+    --carte:       #ffffff;   /* blanc : cartes */
+    --bordure:     #ece8df;   /* bordure crème */
+    --ombre:       0 4px 16px -8px rgba(21, 50, 31, .15);  /* ombre douce verdâtre */
+    --rayon:       18px;      /* rayon des cartes */
+    --police: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--police);
+    background: var(--fond);
+    color: var(--sapin);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: var(--fond);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- En-tête ---------- */
+  .entete {
+    padding: 20px 20px 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
+  .logo .pilote { color: var(--vert); }
+
+  /* ---------- Zone des écrans ---------- */
+  .ecrans { flex: 1; padding: 8px 20px 96px; }
+  .ecran { display: none; }
+  .ecran.actif { display: block; animation: apparait .25s ease; }
+
+  @keyframes apparait {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .titre-ecran { font-size: 26px; font-weight: 800; letter-spacing: -.5px; margin: 10px 0 4px; }
+  .sous-titre { color: var(--gris-texte); font-size: 15px; margin-bottom: 20px; }
+
+  /* ---------- Accueil chaleureux ---------- */
+  .bienvenue {
+    background: linear-gradient(135deg, #1a8a4f, var(--vert-fonce));
+    color: #fff;
+    border-radius: 22px;
+    padding: 21px;
+    margin: 10px 0 22px;
+    box-shadow: 0 12px 26px -10px rgba(26,138,79,.5);
+  }
+  .bienvenue h1 { font-size: 21px; font-weight: 900; margin-bottom: 5px; }
+  .bienvenue p { font-size: 14px; color: #e3f5ea; line-height: 1.5; }
+
+  .section-titre {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: var(--gris-doux);
+    margin: 4px 0 12px;
+  }
+
+  /* Barre de filtres */
+  .filtres {
+    display: flex; gap: 8px; overflow-x: auto;
+    margin-bottom: 20px; padding-bottom: 2px;
+    -ms-overflow-style: none; scrollbar-width: none;
+  }
+  .filtres::-webkit-scrollbar { display: none; }
+  .filtre {
+    flex: 0 0 auto;
+    border: 1px solid var(--bordure);
+    background: var(--carte);
+    border-radius: 12px;
+    padding: 9px 17px;
+    font-size: 13px; font-weight: 700;
+    font-family: var(--police); color: var(--gris-texte);
+    cursor: pointer; transition: all .15s;
+  }
+  .filtre.actif { background: var(--sapin); color: #fff; border-color: var(--sapin); }
+
+  /* Badge temps restant (Aujourd'hui / Demain / Dans X jours) */
+  .restant {
+    display: inline-block;
+    font-size: 11px; font-weight: 800;
+    padding: 2px 8px; border-radius: 12px;
+    background: #eef2f7; color: var(--gris-texte);
+  }
+  .restant.proche { background: #fdecea; color: #b91c1c; }
+
+  /* ---------- Carte ÉVÉNEMENT (regroupe des coups de main) ---------- */
+  .event {
+    background: var(--carte);
+    border: 1px solid var(--bordure);
+    border-radius: var(--rayon);
+    padding: 17px;
+    padding-left: 21px;
+    margin-bottom: 12px;
+    box-shadow: var(--ombre);
+    position: relative;
+    overflow: hidden;
+  }
+  /* Trait fin à gauche selon l'urgence la plus forte non pourvue */
+  .event::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--bordure);
+  }
+  .event.bord-urgent::before     { background: #d8452f; }
+  .event.bord-bientot::before    { background: #e9920c; }
+  .event.bord-tranquille::before { background: #1a8a4f; }
+  .event.bord-ok::before         { background: var(--bordure); }
+
+  .event-haut {
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; user-select: none;
+  }
+  .event-haut .infos { flex: 1; }
+  .event-nom { font-size: 16px; font-weight: 800; letter-spacing: -.2px; }
+  .event-date { font-size: 13px; color: var(--gris-texte); margin-top: 2px; font-weight: 600; }
+  .event-fleche {
+    font-size: 14px; color: var(--gris-doux);
+    transition: transform .25s; flex: 0 0 auto;
+  }
+  .event.ouvert .event-fleche { transform: rotate(180deg); }
+
+  .event-reste {
+    font-size: 12px; font-weight: 800; color: var(--vert-fonce);
+    background: #eef7f0; display: inline-block;
+    padding: 5px 13px; border-radius: 10px; margin-top: 12px;
+  }
+  .event-reste.urgent { color: #a23226; background: #fdf0ee; }
+
+  /* Corps repliable */
+  .event-corps {
+    display: none;
+    margin-top: 14px; flex-direction: column; gap: 10px;
+  }
+  .event.ouvert .event-corps { display: flex; animation: apparait .25s ease; }
+
+  /* Ligne de coup de main à l'intérieur d'un événement */
+  .cdm {
+    border: 1px solid var(--bordure);
+    border-radius: 14px;
+    padding: 13px 15px;
+    background: #fcfbf8;
+  }
+  .cdm.inscrit { border-color: var(--vert); background: #f3faf5; }
+  .cdm.couvert { opacity: .6; }
+  .cdm-haut { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .cdm-nom { font-size: 15px; font-weight: 800; }
+  .cdm-meta { font-size: 12px; color: var(--gris-texte); margin: 4px 0 10px; display: flex; gap: 12px; flex-wrap: wrap; font-weight: 600; }
+  .cdm .jauge-info { font-size: 11px; }
+  .cdm .btn-aide { padding: 11px; font-size: 14px; margin-top: 10px; }
+  .cdm .badge-couvert { padding: 11px; font-size: 14px; }
+
+  /* ---------- Carte de besoin ---------- */
+  .besoin {
+    background: var(--carte);
+    border: 1px solid var(--bordure);
+    border-radius: var(--rayon);
+    padding: 18px;
+    margin-bottom: 12px;
+    box-shadow: var(--ombre);
+    transition: opacity .3s;
+  }
+  .besoin-haut { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .besoin-nom { font-size: 17px; font-weight: 800; line-height: 1.3; }
+
+  /* Menu actions responsable (modifier / supprimer) */
+  .carte-menu { position: relative; flex: 0 0 auto; }
+  .btn-menu {
+    border: none; background: none; cursor: pointer;
+    font-size: 20px; line-height: 1; color: var(--gris-doux);
+    padding: 2px 6px; border-radius: 8px; font-family: var(--police);
+  }
+  .btn-menu:hover { background: var(--fond); color: var(--bleu-nuit); }
+  .menu-actions {
+    position: absolute; right: 0; top: 28px;
+    background: var(--carte);
+    border: 1px solid var(--bordure);
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(15,23,42,.12);
+    overflow: hidden; z-index: 20;
+    display: none; min-width: 150px;
+  }
+  .menu-actions.ouvert { display: block; }
+  .menu-actions button {
+    width: 100%; text-align: left; border: none; background: none;
+    padding: 12px 14px; font-size: 14px; font-weight: 600;
+    font-family: var(--police); cursor: pointer; color: var(--bleu-nuit);
+  }
+  .menu-actions button:hover { background: var(--fond); }
+  .menu-actions button.suppr { color: #b91c1c; }
+
+  .pole {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 11px;
+    border-radius: 20px;
+    white-space: nowrap;
+    letter-spacing: .2px;
+  }
+  /* Petit point coloré devant le nom du pôle */
+  .pole::before {
+    content: "";
+    width: 7px; height: 7px; border-radius: 50%;
+    background: currentColor; opacity: .9;
+    display: inline-block;
+  }
+  /* Couleurs marquées : fond teinté soutenu + texte foncé lisible */
+  .pole-sportif      { background: #dbe9fe; color: #1e40af; }
+  .pole-evenementiel { background: #ffe4cc; color: #b8410a; }
+  .pole-com          { background: #f7ddff; color: #92189e; }
+  .pole-admin        { background: #cdf3d8; color: #12703a; }
+
+  /* Pastille d'urgence */
+  .urgence {
+    display: inline-block;
+    font-size: 12px; font-weight: 800;
+    padding: 4px 11px; border-radius: 10px;
+    white-space: nowrap;
+  }
+  .urgence-urgent     { background: #fdf0ee; color: #a23226; }
+  .urgence-bientot    { background: #fdf6e9; color: #b5710c; }
+  .urgence-tranquille { background: #eef7f0; color: #1a6e3f; }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin: 12px 0 14px;
+    color: var(--gris-texte);
+    font-size: 13px;
+  }
+  .meta span { display: flex; align-items: center; gap: 5px; }
+
+  /* ---------- Jauge ---------- */
+  .jauge-zone { margin-bottom: 14px; }
+  .jauge-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gris-texte);
+    margin-bottom: 6px;
+  }
+  .jauge {
+    height: 7px;
+    background: #f0ede5;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .jauge-barre {
+    height: 100%;
+    background: #1a8a4f;
+    border-radius: 10px;
+    width: 0%;
+    transition: width .4s ease;
+  }
+
+  /* Liste des participants sous la jauge */
+  .participants {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--vert-fonce);
+    margin: 2px 0 12px;
+  }
+  .participants.vide-part { color: var(--gris-doux); font-weight: 600; }
+
+  /* Précisions / petit mot du responsable */
+  .precisions {
+    font-size: 13px;
+    color: var(--gris-texte);
+    background: var(--fond);
+    border-radius: 10px;
+    padding: 9px 12px;
+    margin: 2px 0 12px;
+    line-height: 1.4;
+  }
+
+  /* ---------- Bouton d'engagement ---------- */
+  .btn-aide {
+    width: 100%;
+    border: none;
+    border-radius: 13px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 800;
+    font-family: var(--police);
+    cursor: pointer;
+    background: var(--vert);
+    color: #fff;
+    box-shadow: 0 8px 18px -6px rgba(22,163,74,.5);
+    transition: background .15s, transform .1s, box-shadow .15s;
+  }
+  .btn-aide:hover { background: var(--vert-fonce); }
+  .btn-aide:active { transform: scale(.98); }
+
+  /* État : déjà inscrit */
+  .besoin.inscrit { border-color: var(--vert); }
+  .btn-aide.inscrit {
+    background: #eef7f0;
+    color: var(--vert-fonce);
+    border: 1px solid var(--vert);
+    box-shadow: none;
+  }
+
+  /* État : couvert */
+  .besoin.couvert { opacity: .6; }
+  .badge-couvert {
+    width: 100%;
+    text-align: center;
+    padding: 13px;
+    border-radius: 13px;
+    background: #eef7f0;
+    color: var(--vert-fonce);
+    font-weight: 800;
+    font-size: 15px;
+  }
+  /* Badge besoin clôturé (neutre) */
+  .badge-cloture {
+    width: 100%;
+    text-align: center;
+    padding: 13px;
+    border-radius: 13px;
+    background: #f0ede5;
+    color: var(--gris-texte);
+    font-weight: 800;
+    font-size: 15px;
+  }
+  .cdm .badge-cloture { padding: 11px; font-size: 14px; }
+
+  /* ---------- État vide (autres écrans) ---------- */
+  .vide {
+    background: var(--carte);
+    border: 1px dashed var(--bordure);
+    border-radius: 18px;
+    padding: 48px 24px;
+    text-align: center;
+    box-shadow: var(--ombre);
+    margin-top: 8px;
+  }
+  .vide .icone { font-size: 40px; margin-bottom: 12px; }
+  .vide p { color: var(--gris-doux); font-size: 14px; }
+
+  /* ---------- Carte réglage (mode responsable) ---------- */
+  /* Petit logo en haut de l'accueil */
+  .app-logo { height: 56px; width: auto; display: block; margin: 4px auto 16px; }
+
+  /* Bandeau des annonces du club */
+  #bandeau-annonces { margin-bottom: 18px; }
+  .annonce-bandeau {
+    border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
+    position: relative; border: 1px solid var(--bordure);
+    background: #eef4ff;
+  }
+  .annonce-bandeau.urgent { background: #fdf0ee; border-color: #f3c8c1; }
+  .annonce-bandeau .an-titre { font-size: 14px; font-weight: 800; color: var(--sapin); display: flex; align-items: center; gap: 7px; }
+  .annonce-bandeau .an-texte { font-size: 13px; color: var(--gris-texte); margin-top: 3px; line-height: 1.4; }
+  .annonce-bandeau .an-fermer {
+    position: absolute; top: 10px; right: 12px; cursor: pointer;
+    border: none; background: none; font-size: 16px; color: var(--gris-doux);
+  }
+  .annonce-gest-ligne {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--bordure); border-radius: 12px;
+    padding: 11px 13px; margin-bottom: 8px; background: var(--carte);
+  }
+  .annonce-gest-ligne .ag-info { flex: 1; }
+  .annonce-gest-ligne .ag-titre { font-size: 14px; font-weight: 800; color: var(--sapin); }
+  .annonce-gest-ligne .ag-texte { font-size: 12px; color: var(--gris-texte); margin-top: 2px; }
+  .annonce-gest-ligne button {
+    border: none; border-radius: 9px; padding: 7px 11px; cursor: pointer;
+    font-family: var(--police); font-weight: 800; font-size: 13px;
+    background: #fdf0ee; color: #a23226;
+  }
+
+  /* Bandeau des annonces du club (fin) */
+  .reglage {
+    background: var(--carte);
+    border: 1px solid var(--bordure);
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: var(--ombre);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .reglage .txt { flex: 1; }
+  .reglage .txt strong { display: block; font-size: 15px; font-weight: 800; }
+  .reglage .txt span { font-size: 13px; color: var(--gris-texte); }
+
+  /* Carte de rôle (Profil) */
+  .carte-role {
+    background: var(--carte); border: 1px solid var(--bordure);
+    border-radius: 18px; padding: 18px; box-shadow: var(--ombre);
+    display: flex; align-items: center; gap: 14px; margin-bottom: 6px;
+  }
+  .carte-role .txt { flex: 1; }
+  .carte-role .txt strong { display: block; font-size: 16px; font-weight: 800; color: var(--sapin); }
+  .carte-role .txt span { font-size: 13px; color: var(--gris-texte); }
+  .badge-role { font-size: 26px; }
+
+  /* Liste des membres (administration webmaster) */
+  .membre-ligne {
+    background: var(--carte); border: 1px solid var(--bordure);
+    border-radius: 14px; padding: 12px 14px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .membre-ligne .m-info { flex: 1; }
+  .membre-ligne .m-nom { font-size: 14px; font-weight: 800; color: var(--sapin); }
+  .membre-ligne .m-sous { font-size: 12px; color: var(--gris-texte); margin-top: 2px; }
+  .membre-ligne select {
+    font-family: var(--police); font-size: 13px; font-weight: 700;
+    border: 1px solid var(--bordure); border-radius: 9px; padding: 6px 8px;
+    background: var(--fond); color: var(--sapin);
+  }
+
+  .switch { position: relative; width: 52px; height: 30px; flex: 0 0 auto; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .piste {
+    position: absolute; inset: 0; cursor: pointer;
+    background: #cdd5df; border-radius: 30px; transition: background .2s;
+  }
+  .switch .piste::before {
+    content: ""; position: absolute;
+    width: 24px; height: 24px; left: 3px; top: 3px;
+    background: #fff; border-radius: 50%;
+    transition: transform .2s;
+  }
+  .switch input:checked + .piste { background: var(--vert); }
+  .switch input:checked + .piste::before { transform: translateX(22px); }
+
+  /* ---------- Navigation du bas ---------- */
+  .nav {
+    position: fixed; bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%; max-width: 480px;
+    background: var(--carte);
+    border-top: 1px solid var(--bordure);
+    display: flex; justify-content: space-around;
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+  }
+  .nav-item {
+    flex: 1; background: none; border: none; cursor: pointer;
+    padding: 6px 0; display: flex; flex-direction: column;
+    align-items: center; gap: 3px; color: var(--gris-doux);
+    font-family: var(--police); transition: color .15s;
+  }
+  .nav-item .ico { font-size: 22px; line-height: 1; }
+  .nav-item .lbl { font-size: 11px; font-weight: 600; }
+  .nav-item.actif { color: var(--vert); }
+
+  .nav-plus { flex: 0 0 auto; margin-top: -22px; }
+  .nav-plus button {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: none; background: var(--vert); color: #fff;
+    font-size: 30px; font-weight: 300; cursor: pointer;
+    box-shadow: 0 6px 16px rgba(22,163,74,.4);
+    transition: transform .12s, background .15s;
+  }
+  .nav-plus button:active { transform: scale(.92); }
+  .nav-plus button:hover { background: var(--vert-fonce); }
+
+  /* ---------- Panneau de création (glisse du bas) ---------- */
+  .voile {
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,.45);
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s; z-index: 80;
+  }
+  .voile.ouvert { opacity: 1; pointer-events: auto; }
+
+  .panneau {
+    position: fixed; left: 50%; bottom: 0;
+    transform: translateX(-50%) translateY(100%);
+    width: 100%; max-width: 480px;
+    background: var(--carte);
+    border-radius: 22px 22px 0 0;
+    padding: 8px 20px max(20px, env(safe-area-inset-bottom));
+    z-index: 81;
+    transition: transform .3s ease;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .panneau.ouvert { transform: translateX(-50%) translateY(0); }
+
+  .poignee {
+    width: 42px; height: 5px; border-radius: 10px;
+    background: var(--bordure);
+    margin: 8px auto 16px;
+  }
+  .panneau h2 { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+  .panneau .intro { color: var(--gris-texte); font-size: 14px; margin-bottom: 18px; }
+
+  /* Étapes du formulaire */
+  .etape-form { display: none; }
+  .etape-form.actif { display: block; animation: apparait .2s ease; }
+
+  /* Barre de progression */
+  .prog {
+    height: 6px; background: #f0ede5; border-radius: 10px;
+    overflow: hidden; margin: 4px 0 8px;
+  }
+  .prog-barre {
+    height: 100%; background: var(--vert); border-radius: 10px;
+    width: 33%; transition: width .3s ease;
+  }
+  .prog-txt {
+    font-size: 12px; font-weight: 700; color: var(--gris-doux);
+    margin-bottom: 18px;
+  }
+
+  /* Navigation entre étapes */
+  .etape-nav { display: flex; gap: 10px; }
+  .etape-nav .btn-publier { flex: 1; }
+  .btn-etape-prec {
+    flex: 0 0 auto;
+    border: 1px solid var(--bordure); background: var(--carte);
+    border-radius: 14px; padding: 15px 18px;
+    font-size: 15px; font-weight: 800; font-family: var(--police);
+    color: var(--gris-texte); cursor: pointer;
+  }
+  .btn-etape-prec:hover { background: var(--fond); }
+
+  /* Volet de choix besoin / événement */
+  .choix-grand {
+    width: 100%; display: flex; align-items: center; gap: 14px;
+    border: 1px solid var(--bordure); background: var(--carte);
+    border-radius: 16px; padding: 16px; margin-bottom: 12px;
+    cursor: pointer; font-family: var(--police); text-align: left;
+    transition: border-color .15s, transform .08s;
+  }
+  .choix-grand:hover { border-color: var(--vert); }
+  .choix-grand:active { transform: scale(.98); }
+  .choix-ico { font-size: 30px; flex: 0 0 auto; }
+  .choix-txt { display: flex; flex-direction: column; }
+  .choix-txt strong { font-size: 16px; font-weight: 800; }
+  .choix-txt span { font-size: 13px; color: var(--gris-texte); }
+
+  /* Bouton créer un événement (onglet Événements) */
+  .btn-creer-event {
+    width: 100%; border: none; border-radius: 14px;
+    padding: 14px; font-size: 15px; font-weight: 800;
+    font-family: var(--police); cursor: pointer;
+    background: var(--vert); color: #fff; margin-bottom: 20px;
+    transition: background .15s, transform .1s;
+  }
+  .btn-creer-event:hover { background: var(--vert-fonce); }
+  .btn-creer-event:active { transform: scale(.98); }
+
+  /* Carte événement simple dans l'onglet */
+  .event-ligne {
+    background: var(--carte); border: 1px solid var(--bordure);
+    border-radius: 16px; padding: 16px; margin-bottom: 12px;
+    box-shadow: var(--ombre);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .event-ligne .ev-emoji { font-size: 26px; }
+  .event-ligne .ev-info { flex: 1; }
+  .event-ligne .ev-nom { font-size: 16px; font-weight: 800; }
+  .event-ligne .ev-date { font-size: 13px; color: var(--gris-texte); }
+  .event-ligne .ev-compte { font-size: 12px; font-weight: 700; color: var(--vert-fonce); }
+
+  /* Modèles de missions */
+  .modeles {
+    display: flex; gap: 8px; overflow-x: auto;
+    margin-bottom: 20px; padding-bottom: 4px;
+    -ms-overflow-style: none; scrollbar-width: none;
+  }
+  .modeles::-webkit-scrollbar { display: none; }
+  .modele {
+    flex: 0 0 auto;
+    border: 1px solid var(--bordure);
+    background: var(--fond);
+    border-radius: 14px;
+    padding: 10px 14px;
+    font-size: 13px; font-weight: 700;
+    font-family: var(--police); color: var(--bleu-nuit);
+    cursor: pointer; transition: all .15s; white-space: nowrap;
+  }
+  .modele:hover { border-color: var(--vert); }
+  .modele.choisi { background: #eef7f0; border-color: var(--vert); color: var(--vert-fonce); }
+
+  .champ { margin-bottom: 16px; }
+  .champ label {
+    display: block; font-size: 13px; font-weight: 700;
+    color: var(--bleu-nuit); margin-bottom: 6px;
+  }
+  .champ input, .champ select {
+    width: 100%; padding: 12px 14px;
+    border: 1px solid var(--bordure); border-radius: 12px;
+    font-size: 15px; font-family: var(--police);
+    color: var(--bleu-nuit); background: var(--fond);
+    -webkit-appearance: none; appearance: none;
+  }
+  .champ input:focus, .champ select:focus {
+    outline: none; border-color: var(--vert);
+    background: #fff;
+  }
+  .duo { display: flex; gap: 12px; }
+  .duo .champ { flex: 1; }
+
+  .btn-publier {
+    width: 100%; border: none; border-radius: 14px;
+    padding: 15px; font-size: 16px; font-weight: 800;
+    font-family: var(--police); cursor: pointer;
+    background: var(--vert); color: #fff; margin-top: 4px;
+    transition: background .15s, transform .1s;
+  }
+  .btn-publier:hover { background: var(--vert-fonce); }
+  .btn-publier:active { transform: scale(.98); }
+  .btn-annuler {
+    width: 100%; border: none; background: none;
+    padding: 12px; font-size: 14px; font-weight: 700;
+    font-family: var(--police); color: var(--gris-doux);
+    cursor: pointer; margin-top: 4px;
+  }
+
+  /* ---------- Pop-up de confirmation (modale centrée) ---------- */
+  .modale-fond {
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,.45);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s; z-index: 90;
+  }
+  .modale-fond.ouvert { opacity: 1; pointer-events: auto; }
+
+  .modale {
+    background: var(--carte);
+    border-radius: 20px;
+    padding: 24px 22px;
+    width: 100%; max-width: 360px;
+    text-align: center;
+    transform: scale(.94);
+    transition: transform .2s;
+  }
+  .modale-fond.ouvert .modale { transform: scale(1); }
+
+  .modale .emoji { font-size: 38px; margin-bottom: 10px; }
+  .modale h3 { font-size: 19px; font-weight: 800; margin-bottom: 6px; }
+  .modale p { font-size: 14px; color: var(--gris-texte); margin-bottom: 20px; line-height: 1.4; }
+
+  .modale-boutons { display: flex; flex-direction: column; gap: 10px; }
+  .btn-modale {
+    border: none; border-radius: 12px; padding: 14px;
+    font-size: 15px; font-weight: 800; font-family: var(--police);
+    cursor: pointer; transition: background .15s, transform .1s;
+  }
+  .btn-modale:active { transform: scale(.98); }
+  .btn-modale.principal { background: var(--vert); color: #fff; }
+  .btn-modale.principal:hover { background: var(--vert-fonce); }
+  .btn-modale.danger { background: #fdecea; color: #b91c1c; }
+  .btn-modale.secondaire { background: none; color: var(--gris-doux); padding: 8px; }
+
+  /* Petit mot quand on se propose */
+  .toast {
+    position: fixed; bottom: 90px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--bleu-nuit); color: #fff;
+    padding: 12px 20px; border-radius: 30px;
+    font-size: 14px; font-weight: 600;
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s, transform .25s;
+    z-index: 50;
+  }
+  .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---------- Écran de connexion ---------- */
+  .connexion {
+    position: fixed; inset: 0;
+    background: var(--fond);
+    z-index: 100;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 28px;
+    max-width: 480px; margin: 0 auto;
+  }
+  .connexion.cache { display: none; }
+  .cx-logo { font-size: 34px; font-weight: 800; letter-spacing: -1px; margin-bottom: 6px; }
+  .cx-logo .pilote { color: var(--vert); }
+
+  /* Logo image (écran de connexion) */
+  .cx-logo-img { width: 240px; max-width: 75%; height: auto; margin: 0 auto 14px; display: block; }
+  .cx-logo-img.petit { width: 160px; }
+  .cx-sous { color: var(--gris-texte); font-size: 15px; text-align: center; margin-bottom: 32px; line-height: 1.4; }
+  .cx-carte {
+    background: var(--carte);
+    border: 1px solid var(--bordure);
+    border-radius: 20px;
+    padding: 24px;
+    width: 100%;
+    box-shadow: var(--ombre);
+  }
+  .cx-champ { margin-bottom: 16px; }
+  .cx-champ label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .cx-champ input {
+    width: 100%; padding: 14px;
+    border: 1px solid var(--bordure); border-radius: 12px;
+    font-size: 16px; font-family: var(--police);
+    background: var(--fond); color: var(--bleu-nuit);
+  }
+  .cx-champ input:focus { outline: none; border-color: var(--vert); background: #fff; }
+  .cx-erreur { color: #b91c1c; font-size: 13px; font-weight: 600; margin: -8px 0 14px; display: none; }
+  .cx-erreur.visible { display: block; }
+  .cx-bouton {
+    width: 100%; border: none; border-radius: 14px;
+    padding: 15px; font-size: 16px; font-weight: 800;
+    font-family: var(--police); cursor: pointer;
+    background: var(--vert); color: #fff;
+    transition: background .15s, transform .1s;
+  }
+  .cx-bouton:hover { background: var(--vert-fonce); }
+  .cx-bouton:active { transform: scale(.98); }
+  .cx-note { font-size: 12px; color: var(--gris-doux); text-align: center; margin-top: 18px; line-height: 1.4; }
+
+  /* Questionnaire "trouver ma place" */
+  .q-scroll { max-height: 52vh; overflow-y: auto; }
+  .q-famille { font-size: 12px; font-weight: 800; letter-spacing: .3px; color: var(--gris-doux); text-transform: uppercase; margin: 14px 0 8px; }
+  .q-famille:first-child { margin-top: 0; }
+  .q-option {
+    display: flex; align-items: center; gap: 11px;
+    border: 1.5px solid var(--bordure); border-radius: 13px;
+    padding: 12px 13px; margin-bottom: 8px; cursor: pointer;
+    transition: all .12s; background: var(--carte);
+  }
+  .q-option .q-ico { font-size: 20px; flex: 0 0 auto; }
+  .q-option .q-lbl { flex: 1; font-size: 14px; font-weight: 700; color: var(--sapin); }
+  .q-option .q-check {
+    width: 22px; height: 22px; border-radius: 7px; flex: 0 0 auto;
+    border: 2px solid var(--bordure); display: flex; align-items: center;
+    justify-content: center; color: #fff; font-size: 13px; transition: all .12s;
+  }
+  .q-option.coche { border-color: var(--vert); background: #f3faf5; }
+  .q-option.coche .q-check { background: var(--vert); border-color: var(--vert); }
+
+  /* Fréquences (sélection unique) */
+  .q-freq {
+    display: flex; align-items: center; gap: 12px;
+    border: 1.5px solid var(--bordure); border-radius: 13px;
+    padding: 14px 15px; margin-bottom: 10px; cursor: pointer;
+    transition: all .12s;
+  }
+  .q-freq .q-ico { font-size: 22px; }
+  .q-freq .q-freq-txt strong { display: block; font-size: 15px; font-weight: 800; color: var(--sapin); }
+  .q-freq .q-freq-txt span { font-size: 12.5px; color: var(--gris-texte); }
+  .q-freq.coche { border-color: var(--vert); background: #f3faf5; }
+
+  /* Cartes suggestion (avec explication) */
+  .q-sugg {
+    border: 1px solid var(--bordure); border-radius: 14px;
+    padding: 14px; margin-bottom: 10px; background: #fcfbf8;
+  }
+  .q-sugg-haut { display: flex; align-items: center; gap: 10px; }
+  .q-sugg-haut .q-ico { font-size: 22px; }
+  .q-sugg-nom { font-size: 15px; font-weight: 800; color: var(--sapin); }
+  .q-sugg-desc { font-size: 13px; color: var(--gris-texte); line-height: 1.45; margin-top: 8px; }
+
+  /* Étapes de connexion */
+  .cx-etape { display: none; width: 100%; flex-direction: column; align-items: center; }
+  .cx-etape.actif { display: flex; animation: apparait .25s ease; }
+
+  /* Encart comptes de démo */
+  .cx-demo {
+    width: 100%; margin-top: 20px;
+    background: #fffdf5; border: 1px dashed #e7d9a8;
+    border-radius: 16px; padding: 14px;
+  }
+  .cx-demo-titre { font-size: 12px; font-weight: 800; color: #9a7b1f; margin-bottom: 10px; letter-spacing: .3px; }
+  .cx-demo-ligne {
+    display: block; width: 100%; text-align: left;
+    background: #fff; border: 1px solid var(--bordure);
+    border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+    font-size: 13px; font-family: var(--police); color: var(--gris-texte);
+    cursor: pointer; transition: border-color .15s;
+  }
+  .cx-demo-ligne strong { color: var(--bleu-nuit); }
+  .cx-demo-ligne:hover { border-color: var(--vert); }
+  .cx-reinit {
+    width: 100%; border: none; background: none;
+    font-size: 13px; font-weight: 700; font-family: var(--police);
+    color: #b91c1c; cursor: pointer; padding: 8px; margin-top: 2px;
+  }
+
+  .cx-lien {
+    width: 100%; border: none; background: none;
+    padding: 12px; font-size: 14px; font-weight: 700;
+    font-family: var(--police); color: var(--gris-doux); cursor: pointer;
+    margin-top: 4px;
+  }
+  .cx-erreur-centre { text-align: center; }
+
+  /* Points du PIN */
+  .pin-points { display: flex; justify-content: center; gap: 16px; margin: 8px 0 18px; }
+  .pin-point {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid var(--gris-doux);
+    transition: background .15s, border-color .15s, transform .15s;
+  }
+  .pin-point.plein { background: var(--vert); border-color: var(--vert); transform: scale(1.1); }
+  .pin-points.erreur .pin-point { border-color: #e2453f; animation: secoue .35s; }
+  @keyframes secoue {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  /* Pavé numérique */
+  .pave {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px; margin-top: 4px;
+  }
+  .pave-touche {
+    aspect-ratio: 1 / 1;
+    border: 1px solid var(--bordure);
+    background: var(--fond);
+    border-radius: 50%;
+    font-size: 24px; font-weight: 700;
+    font-family: var(--police); color: var(--bleu-nuit);
+    cursor: pointer;
+    transition: background .12s, transform .08s;
+  }
+  .pave-touche:hover { background: #f0ede5; }
+  .pave-touche:active { transform: scale(.92); background: #e2e8f0; }
+  .pave-suppr { border: none; background: none; font-size: 22px; color: var(--gris-texte); }
+  .pave-suppr:hover { background: #f0f2f5; }
+
+  /* Bouton se déconnecter dans le profil */
+  .btn-deco {
+    width: 100%; border: 1px solid var(--bordure);
+    background: var(--carte); border-radius: 14px;
+    padding: 13px; font-size: 14px; font-weight: 700;
+    font-family: var(--police); color: var(--gris-texte);
+    cursor: pointer; margin-top: 18px;
+  }
+  .btn-deco:hover { border-color: #f0997b; color: #b91c1c; }
+
+  /* Demandes d'inscription (côté responsable) */
+  .demande {
+    background: var(--carte); border: 1px solid var(--bordure);
+    border-radius: 14px; padding: 14px; margin-bottom: 10px;
+    box-shadow: var(--ombre);
+  }
+  .demande-nom { font-size: 15px; font-weight: 800; color: var(--sapin); }
+  .demande-info { font-size: 12.5px; color: var(--gris-texte); margin-top: 3px; line-height: 1.4; }
+  .demande-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .demande-actions button {
+    flex: 1; border: none; border-radius: 11px; padding: 10px;
+    font-size: 14px; font-weight: 800; font-family: var(--police); cursor: pointer;
+  }
+  .btn-valider { background: var(--vert); color: #fff; }
+  .btn-refuser { background: #fdf0ee; color: #a23226; }
+</style>
+</head>
+<body>
+
+  <!-- ================= ÉCRAN DE CONNEXION (multi-étapes) ================= -->
+  <div class="connexion" id="connexion">
+
+    <!-- Étape 1 : Bienvenue -->
+    <div class="cx-etape actif" data-etape="bienvenue">
+      <img src="logo.png" alt="AssoPilot" class="cx-logo-img" onerror="this.outerHTML='<div class=\'cx-logo\'>Asso<span class=\'pilote\'>Pilot</span></div>'" />
+      <div class="cx-sous">Le coup de main facile, pour tout le club.</div>
+      <div class="cx-carte">
+        <button class="cx-bouton" id="cx-go-connexion">Se connecter</button>
+        <button class="cx-lien" id="cx-go-inscription" style="margin-top:8px;">Nouveau ? Créer un compte</button>
+      </div>
+    </div>
+
+    <!-- Étape 2 : Identifiant -->
+    <div class="cx-etape" data-etape="identifiant">
+      <img src="logo.png" alt="AssoPilot" class="cx-logo-img petit" onerror="this.outerHTML='<div class=\'cx-logo\'>Asso<span class=\'pilote\'>Pilot</span></div>'" />
+      <div class="cx-sous">Entre ton identifiant pour commencer.</div>
+      <div class="cx-carte">
+        <div class="cx-champ">
+          <label for="cx-id">Ton identifiant</label>
+          <input id="cx-id" type="text" placeholder="lohan" autocapitalize="none" autocomplete="username" />
+        </div>
+        <div class="cx-erreur" id="cx-erreur-id"></div>
+        <button class="cx-bouton" id="cx-valider-id">Continuer</button>
+        <button class="cx-lien" id="cx-retour-bienvenue">Retour</button>
+      </div>
+    </div>
+
+    <!-- Étape 3 : PIN (pavé) -->
+    <div class="cx-etape" data-etape="pin">
+      <img src="logo.png" alt="AssoPilot" class="cx-logo-img petit" onerror="this.outerHTML='<div class=\'cx-logo\'>Asso<span class=\'pilote\'>Pilot</span></div>'" />
+      <div class="cx-sous" id="cx-pin-consigne">Entre ton code PIN</div>
+      <div class="cx-carte">
+        <div class="pin-points" id="pin-points">
+          <span class="pin-point"></span><span class="pin-point"></span>
+          <span class="pin-point"></span><span class="pin-point"></span>
+        </div>
+        <div class="cx-erreur cx-erreur-centre" id="cx-erreur-pin"></div>
+        <div class="pave">
+          <button class="pave-touche" data-chiffre="1">1</button>
+          <button class="pave-touche" data-chiffre="2">2</button>
+          <button class="pave-touche" data-chiffre="3">3</button>
+          <button class="pave-touche" data-chiffre="4">4</button>
+          <button class="pave-touche" data-chiffre="5">5</button>
+          <button class="pave-touche" data-chiffre="6">6</button>
+          <button class="pave-touche" data-chiffre="7">7</button>
+          <button class="pave-touche" data-chiffre="8">8</button>
+          <button class="pave-touche" data-chiffre="9">9</button>
+          <span></span>
+          <button class="pave-touche" data-chiffre="0">0</button>
+          <button class="pave-touche pave-suppr" data-action="suppr">⌫</button>
+        </div>
+        <button class="cx-lien" id="cx-retour-id">Ce n'est pas toi ? Changer de compte</button>
+      </div>
+    </div>
+
+    <!-- Étape : Formulaire d'inscription -->
+    <div class="cx-etape" data-etape="inscription">
+      <div class="cx-logo" style="font-size:24px;">Créer un compte</div>
+      <div class="cx-sous">Ta demande sera validée par un responsable du club.</div>
+      <div class="cx-carte q-scroll">
+        <div class="cx-champ">
+          <label for="i-prenom">Prénom</label>
+          <input id="i-prenom" type="text" placeholder="Lohan" />
+        </div>
+        <div class="cx-champ">
+          <label for="i-nom">Nom</label>
+          <input id="i-nom" type="text" placeholder="Boulard" />
+        </div>
+        <div class="cx-champ">
+          <label for="i-id">Choisis un identifiant</label>
+          <input id="i-id" type="text" placeholder="lohan.b" autocapitalize="none" />
+        </div>
+        <div class="cx-champ">
+          <label for="i-tel">Téléphone</label>
+          <input id="i-tel" type="tel" placeholder="06 12 34 56 78" />
+        </div>
+        <div class="cx-champ">
+          <label for="i-email">Email</label>
+          <input id="i-email" type="email" placeholder="prenom@exemple.fr" />
+        </div>
+        <div class="cx-erreur" id="i-erreur"></div>
+        <button class="cx-bouton" id="i-continuer">Continuer →</button>
+        <button class="cx-lien" id="i-retour">Retour</button>
+      </div>
+    </div>
+
+    <!-- Étape : choix du PIN à l'inscription -->
+    <div class="cx-etape" data-etape="inscription-pin">
+      <div class="cx-logo" style="font-size:24px;">Choisis ton code PIN</div>
+      <div class="cx-sous" id="i-pin-consigne">4 chiffres, pour te connecter facilement</div>
+      <div class="cx-carte">
+        <div class="pin-points" id="i-pin-points">
+          <span class="pin-point"></span><span class="pin-point"></span>
+          <span class="pin-point"></span><span class="pin-point"></span>
+        </div>
+        <div class="cx-erreur cx-erreur-centre" id="i-pin-erreur"></div>
+        <div class="pave">
+          <button class="pave-touche i-pave" data-chiffre="1">1</button>
+          <button class="pave-touche i-pave" data-chiffre="2">2</button>
+          <button class="pave-touche i-pave" data-chiffre="3">3</button>
+          <button class="pave-touche i-pave" data-chiffre="4">4</button>
+          <button class="pave-touche i-pave" data-chiffre="5">5</button>
+          <button class="pave-touche i-pave" data-chiffre="6">6</button>
+          <button class="pave-touche i-pave" data-chiffre="7">7</button>
+          <button class="pave-touche i-pave" data-chiffre="8">8</button>
+          <button class="pave-touche i-pave" data-chiffre="9">9</button>
+          <span></span>
+          <button class="pave-touche i-pave" data-chiffre="0">0</button>
+          <button class="pave-touche pave-suppr i-pave" data-action="suppr">⌫</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Étape : demande envoyée -->
+    <div class="cx-etape" data-etape="inscription-fin">
+      <div class="cx-logo" style="font-size:42px;">📨</div>
+      <div class="cx-sous" style="font-size:18px; font-weight:800; color:var(--sapin);">Ta demande est envoyée !</div>
+      <div class="cx-carte">
+        <p class="intro" style="text-align:center; margin:0 0 4px;">Un responsable du club va valider ton inscription. Tu pourras te connecter dès que ce sera fait.</p>
+      </div>
+      <button class="cx-bouton" id="i-fin-ok" style="margin-top:14px;">Compris</button>
+    </div>
+
+    <!-- Étape : Bienvenue 1re connexion (sais-tu comment aider ?) -->
+    <div class="cx-etape" data-etape="q-intro">
+      <div class="cx-logo">Asso<span class="pilote">Pilot</span></div>
+      <div class="cx-sous" id="q-intro-bonjour">Bienvenue ! 👋</div>
+      <div class="cx-carte">
+        <p class="intro" style="text-align:center;">Tu sais déjà comment tu aimerais aider le club ?</p>
+        <button class="cx-bouton" id="q-oui" style="margin-bottom:10px;">✅ Oui, je sais</button>
+        <button class="choix-grand" id="q-aide" style="margin-bottom:0;">
+          <span class="choix-ico">🤔</span>
+          <span class="choix-txt"><strong>Aide-moi à trouver ma place</strong><span>2 petites questions, ça prend 30 secondes</span></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Étape Q1 : qu'est-ce qui te plairait ? -->
+    <div class="cx-etape" data-etape="q1">
+      <div class="cx-logo" style="font-size:24px;">Trouve ta place</div>
+      <div class="cx-sous">Qu'est-ce qui te plairait de faire ? <span style="color:var(--gris-doux);">(plusieurs choix possibles)</span></div>
+      <div class="cx-carte q-scroll" id="q1-familles"><!-- rempli par JS --></div>
+      <button class="cx-bouton" id="q1-suivant" style="margin-top:14px;">Continuer →</button>
+    </div>
+
+    <!-- Étape Q2 : combien de fois ? -->
+    <div class="cx-etape" data-etape="q2">
+      <div class="cx-logo" style="font-size:24px;">Trouve ta place</div>
+      <div class="cx-sous">À quelle fréquence aimerais-tu aider ?</div>
+      <div class="cx-carte" id="q2-freqs"><!-- rempli par JS --></div>
+      <button class="cx-lien" id="q2-retour">← Retour</button>
+    </div>
+
+    <!-- Étape : suggestions finales -->
+    <div class="cx-etape" data-etape="q-fin">
+      <div class="cx-logo" style="font-size:24px;">🎉 Super !</div>
+      <div class="cx-sous">Voici des coups de main qui pourraient te plaire 💙</div>
+      <div class="cx-carte q-scroll" id="q-suggestions"><!-- rempli par JS --></div>
+      <button class="cx-bouton" id="q-terminer" style="margin-top:14px;">C'est parti !</button>
+    </div>
+
+  </div>
+
+  <div class="app">
+
+    <header class="entete">
+      <div class="logo">Asso<span class="pilote">Pilot</span></div>
+    </header>
+
+    <main class="ecrans">
+
+      <!-- ================= ACCUEIL = liste des besoins ================= -->
+      <section class="ecran actif" data-ecran="accueil">
+        <img src="logo.png" alt="AssoPilot" class="app-logo" onerror="this.style.display='none'" />
+        <div class="bienvenue">
+          <h1 id="accueil-bonjour">Bonjour 👋</h1>
+          <p id="accueil-phrase">Bienvenue au club !</p>
+        </div>
+
+        <!-- Bandeau des annonces du club -->
+        <div id="bandeau-annonces"><!-- rempli par JS --></div>
+
+        <div class="filtres" id="filtres">
+          <button class="filtre actif" data-filtre="tous">Tous</button>
+          <button class="filtre" data-filtre="aujourdhui">Aujourd'hui</button>
+          <button class="filtre" data-filtre="semaine">Cette semaine</button>
+          <button class="filtre" data-filtre="plustard">Plus tard</button>
+        </div>
+
+        <div class="section-titre">Ce week-end au club</div>
+        <div id="liste-events"><!-- rempli par JS --></div>
+        <div class="section-titre" id="titre-libres">Autres coups de main</div>
+        <div id="liste-libres"><!-- rempli par JS --></div>
+      </section>
+
+      <section class="ecran" data-ecran="evenements">
+        <h1 class="titre-ecran">Événements</h1>
+        <p class="sous-titre">Les rendez-vous du club.</p>
+        <button class="btn-creer-event" id="btn-creer-event">＋ Créer un événement</button>
+        <div id="liste-events-onglet"><!-- rempli par JS --></div>
+      </section>
+
+      <section class="ecran" data-ecran="aider">
+        <h1 class="titre-ecran">Mes coups de main</h1>
+        <p class="sous-titre">Les missions où tu t'es proposé.</p>
+        <div id="mes-engagements"><!-- rempli par JS --></div>
+      </section>
+
+      <section class="ecran" data-ecran="profil">
+        <h1 class="titre-ecran">Profil</h1>
+        <p class="sous-titre">Tes infos.</p>
+
+        <div class="carte-role">
+          <div class="txt">
+            <strong id="profil-prenom">—</strong>
+            <span id="profil-role-lbl">Bénévole</span>
+          </div>
+          <span class="badge-role" id="profil-role-badge">🙌</span>
+        </div>
+
+        <div id="zone-demandes" style="display:none; margin-top:8px;">
+          <div class="section-titre" style="margin-top:8px;">Demandes d'inscription</div>
+          <div id="liste-demandes"><!-- rempli par JS --></div>
+        </div>
+
+        <div id="zone-annonces-gestion" style="display:none; margin-top:8px;">
+          <div class="section-titre" style="margin-top:8px;">Message d'accueil du club</div>
+          <button class="btn-creer-event" id="btn-creer-annonce" style="margin-bottom:14px;">＋ Publier un message</button>
+
+          <div id="form-annonce" style="display:none;">
+            <div class="cx-champ"><label for="an-titre">Titre</label><input id="an-titre" type="text" placeholder="Tournoi ce week-end !" /></div>
+            <div class="cx-champ"><label for="an-texte">Message</label><input id="an-texte" type="text" placeholder="On a besoin de monde à la buvette samedi." /></div>
+            <div class="cx-champ">
+              <label for="an-niveau">Importance</label>
+              <select id="an-niveau">
+                <option value="info">🔵 Info</option>
+                <option value="urgent">🔴 Urgent</option>
+              </select>
+            </div>
+            <div class="cx-erreur" id="an-erreur"></div>
+            <button class="btn-publier" id="an-publier">Publier</button>
+            <button class="cx-lien" id="an-annuler">Annuler</button>
+          </div>
+
+          <div id="liste-annonces-gestion"><!-- rempli par JS --></div>
+        </div>
+
+        <div id="zone-admin" style="display:none; margin-top:8px;">
+          <div class="section-titre" style="margin-top:8px;">Administration</div>
+          <button class="btn-creer-event" id="btn-creer-compte" style="margin-bottom:14px;">＋ Créer un compte</button>
+
+          <div id="form-compte" style="display:none;">
+            <div class="cx-champ"><label for="a-prenom">Prénom</label><input id="a-prenom" type="text" placeholder="Jean" /></div>
+            <div class="cx-champ"><label for="a-nom">Nom</label><input id="a-nom" type="text" placeholder="Dupont" /></div>
+            <div class="cx-champ"><label for="a-id">Identifiant</label><input id="a-id" type="text" placeholder="jean.president" autocapitalize="none" /></div>
+            <div class="cx-champ">
+              <label for="a-role">Rôle</label>
+              <select id="a-role">
+                <option value="benevole">Bénévole</option>
+                <option value="responsable">Responsable</option>
+                <option value="webmaster">Webmaster</option>
+              </select>
+            </div>
+            <div class="cx-erreur" id="a-erreur"></div>
+            <button class="btn-publier" id="a-creer">Créer le compte</button>
+            <button class="cx-lien" id="a-annuler">Annuler</button>
+            <p class="sous-titre" style="font-size:12px; margin-top:6px;">La personne choisira son code PIN à sa première connexion.</p>
+          </div>
+
+          <div id="liste-membres"><!-- rempli par JS --></div>
+        </div>
+
+        <button class="btn-deco" id="btn-deco">Se déconnecter</button>
+      </section>
+
+    </main>
+
+    <nav class="nav">
+      <button class="nav-item actif" data-cible="accueil">
+        <span class="ico">🏠</span><span class="lbl">Accueil</span>
+      </button>
+      <button class="nav-item" data-cible="evenements">
+        <span class="ico">📅</span><span class="lbl">Événements</span>
+      </button>
+      <div class="nav-plus"><button id="btn-plus" title="Créer un besoin">+</button></div>
+      <button class="nav-item" data-cible="aider">
+        <span class="ico">🙌</span><span class="lbl">Mes aides</span>
+      </button>
+      <button class="nav-item" data-cible="profil">
+        <span class="ico">🙂</span><span class="lbl">Profil</span>
+      </button>
+    </nav>
+
+    <!-- ============ PANNEAU : créer un besoin ============ -->
+    <div class="voile" id="voile"></div>
+    <div class="panneau" id="panneau">
+      <div class="poignee"></div>
+      <h2 id="panneau-titre">Nouveau besoin</h2>
+
+      <!-- Barre de progression -->
+      <div class="prog">
+        <div class="prog-barre" id="prog-barre"></div>
+      </div>
+      <div class="prog-txt" id="prog-txt">Étape 1 sur 3 · Quoi ?</div>
+
+      <!-- ÉTAPE 1 : Quoi ? -->
+      <div class="etape-form actif" data-form="1">
+        <div class="modeles" id="modeles">
+          <button class="modele" data-modele="salle">🛡️ Responsable de salle</button>
+          <button class="modele" data-modele="table">⏱️ Table de marque</button>
+          <button class="modele" data-modele="buvette">🍔 Buvette</button>
+          <button class="modele" data-modele="arbitrage">🟨 Arbitrage</button>
+          <button class="modele" data-modele="courses">🛒 Courses</button>
+          <button class="modele" data-modele="local">🧹 Ranger le local</button>
+          <button class="modele" data-modele="coaching">🤝 Coup de main coaching</button>
+          <button class="modele" data-modele="feuille">💻 Feuille de match</button>
+        </div>
+
+        <div class="champ">
+          <label for="f-nom">De quoi as-tu besoin ?</label>
+          <input id="f-nom" type="text" placeholder="Tenir la buvette" />
+        </div>
+
+        <div class="champ">
+          <label for="f-event">Rattacher à un événement ? <span style="font-weight:600; color:var(--gris-doux);">(facultatif)</span></label>
+          <select id="f-event">
+            <option value="">Aucun — coup de main libre</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ÉTAPE 2 : Quand & combien ? -->
+      <div class="etape-form" data-form="2">
+        <div class="duo" id="bloc-date">
+          <div class="champ">
+            <label for="f-date">Quel jour ?</label>
+            <input id="f-date" type="date" />
+          </div>
+          <div class="champ">
+            <label for="f-heure">À quelle heure ?</label>
+            <input id="f-heure" type="time" />
+          </div>
+        </div>
+
+        <div class="champ" id="bloc-date-event" style="display:none;">
+          <p class="intro" style="margin:0;">📅 La date sera celle de l'événement choisi.</p>
+        </div>
+
+        <div class="champ">
+          <label for="f-cherche">Combien de bénévoles ?</label>
+          <input id="f-cherche" type="number" min="1" value="2" />
+        </div>
+
+        <div class="champ">
+          <label for="f-pole">Pôle</label>
+          <select id="f-pole">
+            <option value="sportif">Sportif</option>
+            <option value="evenementiel">Événementiel</option>
+            <option value="com">Communication</option>
+            <option value="admin">Financier / Administratif</option>
+          </select>
+        </div>
+
+        <div class="champ">
+          <label for="f-duree">Durée estimée</label>
+          <input id="f-duree" type="text" placeholder="2 h" />
+        </div>
+      </div>
+
+      <!-- ÉTAPE 3 : Détails ? -->
+      <div class="etape-form" data-form="3">
+        <div class="champ">
+          <label for="f-urgence">Niveau d'urgence</label>
+          <select id="f-urgence">
+            <option value="auto" selected>⚙️ Automatique (selon la date)</option>
+            <option value="urgent">🔴 Forcer : Urgent</option>
+            <option value="bientot">🟠 Forcer : Bientôt</option>
+            <option value="tranquille">🟢 Forcer : Tranquille</option>
+          </select>
+        </div>
+
+        <div class="champ">
+          <label for="f-precisions">Précisions <span style="font-weight:600; color:var(--gris-doux);">(facultatif)</span></label>
+          <input id="f-precisions" type="text" placeholder="Rendez-vous à l'entrée côté parking" />
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="etape-nav">
+        <button class="btn-etape-prec" id="btn-prec" style="display:none;">← Retour</button>
+        <button class="btn-publier" id="btn-suiv">Suivant →</button>
+        <button class="btn-publier" id="btn-publier" style="display:none;">Publier le besoin</button>
+      </div>
+      <button class="btn-annuler" id="btn-annuler">Annuler</button>
+    </div>
+
+    <!-- ============ VOLET : choisir besoin ou événement ============ -->
+    <div class="panneau" id="panneau-choix">
+      <div class="poignee"></div>
+      <h2>Créer…</h2>
+      <p class="intro">Que veux-tu ajouter ?</p>
+      <button class="choix-grand" id="choix-besoin">
+        <span class="choix-ico">🙌</span>
+        <span class="choix-txt"><strong>Un besoin</strong><span>Un coup de main à pourvoir</span></span>
+      </button>
+      <button class="choix-grand" id="choix-event">
+        <span class="choix-ico">📅</span>
+        <span class="choix-txt"><strong>Un événement</strong><span>Match, tournoi, réunion…</span></span>
+      </button>
+      <button class="btn-annuler" id="btn-annuler-choix">Annuler</button>
+    </div>
+
+    <!-- ============ PANNEAU : créer un événement ============ -->
+    <div class="panneau" id="panneau-event">
+      <div class="poignee"></div>
+      <h2 id="event-titre">Nouvel événement</h2>
+      <p class="intro">Choisis un type, donne-lui un nom et une date.</p>
+
+      <div class="modeles" id="types-event">
+        <button class="modele" data-type="match"   data-emoji="🏐">🏐 Match</button>
+        <button class="modele" data-type="tournoi" data-emoji="🏆">🏆 Tournoi</button>
+        <button class="modele" data-type="stage"   data-emoji="💪">💪 Stage</button>
+        <button class="modele" data-type="reunion" data-emoji="📋">📋 Réunion / AG</button>
+        <button class="modele" data-type="fete"    data-emoji="🎉">🎉 Fête</button>
+        <button class="modele" data-type="autre"   data-emoji="📅">✏️ Autre</button>
+      </div>
+
+      <div class="champ">
+        <label for="fe-nom">Nom de l'événement</label>
+        <input id="fe-nom" type="text" placeholder="Match U15 Garçons" />
+      </div>
+
+      <div class="duo">
+        <div class="champ">
+          <label for="fe-date">Quel jour ?</label>
+          <input id="fe-date" type="date" />
+        </div>
+        <div class="champ">
+          <label for="fe-heure">À quelle heure ?</label>
+          <input id="fe-heure" type="time" />
+        </div>
+      </div>
+
+      <button class="btn-publier" id="btn-publier-event">Créer l'événement</button>
+      <button class="btn-annuler" id="btn-annuler-event">Annuler</button>
+    </div>
+
+    <!-- ============ POP-UP de confirmation ============ -->
+    <div class="modale-fond" id="modale-fond">
+      <div class="modale">
+        <div class="emoji" id="modale-emoji">🙌</div>
+        <h3 id="modale-titre">Confirmer</h3>
+        <p id="modale-texte"></p>
+        <div class="modale-boutons">
+          <button class="btn-modale principal" id="modale-ok">Confirmer</button>
+          <button class="btn-modale secondaire" id="modale-non">Annuler</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ POP-UP des annonces (nouveaux messages) ============ -->
+    <div class="modale-fond" id="annonce-pop-fond">
+      <div class="modale" style="text-align:left;">
+        <div class="emoji" id="annonce-pop-emoji" style="text-align:center;">📣</div>
+        <div id="annonce-pop-contenu"><!-- rempli par JS --></div>
+        <div class="modale-boutons">
+          <button class="btn-modale principal" id="annonce-pop-ok">J'ai compris</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+<script>
+  /* ===========================================================
+     ASSOPILOT — connecté à Supabase (base de données réelle).
+     Les besoins sont lus/écrits dans Supabase ; le reste (événements,
+     membres) est en cours de migration.
+     =========================================================== */
+
+  /* --- Connexion Supabase --- */
+  const SUPABASE_URL = "https://rboftnretbhasthvjdns.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJib2Z0bnJldGJoYXN0aHZqZG5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NzEzNDMsImV4cCI6MjA5ODA0NzM0M30.RwK0dGMM5e9_ExKfNW4D5Z9bHNrQ1ucvPyTqEzh5v58";
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  /* Date du jour + helper pour fabriquer une date à +N jours (démo) */
+  const AUJ = new Date(); AUJ.setHours(0,0,0,0);
+  function dansNjours(n) {
+    const d = new Date(AUJ); d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0,10);
+  }
+
+  /* Identité de l'utilisateur connecté (rempli à la connexion) */
+  let MOI = "";          // prénom affiché
+  let MON_ID = null;     // uuid du membre connecté (pour les inscriptions Supabase)
+  let roleActuel = "benevole";   // rôle du compte connecté : benevole | responsable | webmaster
+
+  /* Helpers de droits — un seul endroit pour décider qui peut quoi */
+  function peutGerer()   { return roleActuel === 'responsable' || roleActuel === 'webmaster'; } // besoins, événements, valider membres
+  function estWebmaster(){ return roleActuel === 'webmaster'; }                                  // administration, rôles
+
+  /* ===========================================================
+     SUPABASE — Lecture des besoins (Temps 1)
+     =========================================================== */
+
+  /* Convertit une ligne Supabase en objet "besoin" utilisé par l'app */
+  function ligneVersBesoin(row, inscrits) {
+    const noms = inscrits.map(i => i.prenom).filter(Boolean);
+    return {
+      id: row.id,
+      nom: row.nom,
+      event: row.evenement_id,          // id d'événement ou null
+      pole: row.pole,
+      poleLabel: labelsPole[row.pole] || row.pole,
+      dateISO: row.date_iso,
+      duree: row.duree || "—",
+      urgenceForcee: row.urgence_forcee || null,
+      precisions: row.precisions || "",
+      cherche: row.cherche,
+      cloture: row.cloture,
+      qui: noms,                                          // prénoms des inscrits
+      jeParticipe: inscrits.some(i => i.membre_id === MON_ID),  // suis-je inscrit ? (par id)
+    };
+  }
+
+  /* Insère les besoins de démo UNE SEULE FOIS si la table est vide */
+  async function amorcerDemoSiVide() {
+    const { count, error } = await sb.from('besoins').select('*', { count: 'exact', head: true });
+    if (error) { console.error('Comptage besoins échoué', error); return; }
+    if (count === 0) {
+      const { error: errIns } = await sb.from('besoins').insert(besoinsDemo);
+      if (errIns) console.error('Insertion démo échouée', errIns);
+    }
+  }
+
+  /* Charge tous les besoins + leurs inscrits depuis Supabase dans le cache */
+  async function chargerBesoins() {
+    // 1) les besoins
+    const { data: rows, error } = await sb.from('besoins').select('*').order('cree_le', { ascending: true });
+    if (error) { console.error('Chargement besoins échoué', error); montrerToast("Connexion à la base impossible."); return; }
+
+    // 2) les inscriptions (prénom + id du membre)
+    const { data: insc, error: err2 } = await sb
+      .from('inscriptions')
+      .select('besoin_id, membre_id, membres ( prenom )');
+    const parBesoin = {};
+    if (!err2 && insc) {
+      insc.forEach(i => {
+        (parBesoin[i.besoin_id] = parBesoin[i.besoin_id] || []).push({
+          prenom: i.membres ? i.membres.prenom : null,
+          membre_id: i.membre_id
+        });
+      });
+    }
+
+    // 3) on remplit le cache
+    besoins = rows.map(r => ligneVersBesoin(r, parBesoin[r.id] || []));
+    afficherBesoins();
+  }
+
+  const labelsPole = { sportif: "Sportif", evenementiel: "Événementiel", com: "Communication", admin: "Financier / Administratif" };
+
+  /* Niveaux d'urgence : pastille (emoji + mot + couleur) et ordre de tri */
+  const urgences = {
+    urgent:     { label: "Urgent",     emoji: "🔴", rang: 0 },
+    bientot:    { label: "Bientôt",    emoji: "🟠", rang: 1 },
+    tranquille: { label: "Tranquille", emoji: "🟢", rang: 2 },
+  };
+
+  /* Événements du club (fictifs) */
+  const evenements = [
+    { id: "u15",  nom: "Match U15 Garçons", emoji: "🏐", dateISO: dansNjours(1),  heure: "15:00", quand: 1 },
+    { id: "fete", nom: "Fête du club",      emoji: "🎉", dateISO: dansNjours(18), heure: "",      quand: 2 },
+  ];
+
+  /* Besoins (fictifs) */
+  let prochainId = 7;
+  let besoins = [];   // cache rempli depuis Supabase au démarrage
+
+  /* Besoins de démonstration insérés UNE SEULE FOIS si la base est vide.
+     (colonnes = noms de la table Supabase) */
+  const besoinsDemo = [
+    { nom: "Table de marque",          pole: "sportif",    date_iso: dansNjours(1),  duree: "2 h", cherche: 1, urgence_forcee: null, precisions: "" },
+    { nom: "Buvette",                  pole: "evenementiel", date_iso: dansNjours(1),  duree: "3 h", cherche: 2, urgence_forcee: null, precisions: "Rendez-vous à l'entrée côté parking." },
+    { nom: "Installation de la salle", pole: "evenementiel", date_iso: dansNjours(1),  duree: "1 h", cherche: 2, urgence_forcee: null, precisions: "" },
+    { nom: "Photos pour les réseaux",  pole: "com",        date_iso: dansNjours(18), duree: "1 h", cherche: 1, urgence_forcee: null, precisions: "Appareil fourni par le club." },
+    { nom: "Transport du matériel",    pole: "evenementiel", date_iso: dansNjours(18), duree: "2 h", cherche: 4, urgence_forcee: null, precisions: "" },
+    { nom: "Récupérer les maillots",   pole: "evenementiel", date_iso: dansNjours(3),  duree: "1 h", cherche: 1, urgence_forcee: null, precisions: "Au pressing de la place, avant 18h." },
+  ];
+
+  /* URGENCE AUTOMATIQUE : calculée selon le nombre de jours avant l'échéance.
+     Si un niveau a été forcé par le responsable, on le respecte. */
+  function urgenceDe(b) {
+    if (b.urgenceForcee) return b.urgenceForcee;
+    if (!b.dateISO) return "tranquille";
+    const cible = new Date(b.dateISO + "T00:00:00");
+    const jours = Math.round((cible - AUJ) / 86400000);
+    if (jours <= 1) return "urgent";      // aujourd'hui ou demain
+    if (jours <= 3) return "bientot";     // dans les 3 prochains jours
+    return "tranquille";                  // au-delà
+  }
+
+  /* Nombre de jours avant l'échéance (négatif si passé) */
+  function joursAvant(b) {
+    if (!b.dateISO) return null;
+    const cible = new Date(b.dateISO + "T00:00:00");
+    return Math.round((cible - AUJ) / 86400000);
+  }
+
+  /* Temps restant en mots : Aujourd'hui / Demain / Dans X jours / Passé */
+  function tempsRestant(b) {
+    const j = joursAvant(b);
+    if (j === null) return null;
+    if (j < 0)  return { txt: "Passé", proche: false };
+    if (j === 0) return { txt: "Aujourd'hui", proche: true };
+    if (j === 1) return { txt: "Demain", proche: true };
+    if (j <= 6) return { txt: `Dans ${j} jours`, proche: j <= 3 };
+    if (j <= 13) return { txt: "La semaine prochaine", proche: false };
+    return { txt: `Dans ${Math.round(j/7)} semaines`, proche: false };
+  }
+
+  /* Icône selon le type de mission (déduite du nom, sans champ supplémentaire) */
+  function iconeMission(nom) {
+    const n = nom.toLowerCase();
+    if (/responsable de salle|police de terrain/.test(n)) return "🛡️";
+    if (/table de marque|chrono|secrétaire|secretaire|score/.test(n)) return "⏱️";
+    if (/buvette|boisson|bar/.test(n)) return "🍔";
+    if (/arbitr/.test(n)) return "🟨";
+    if (/course|achat|magasin/.test(n)) return "🛒";
+    if (/ranger|local|nettoy/.test(n)) return "🧹";
+    if (/coach|entra[îi]n|remplacer/.test(n)) return "🤝";
+    if (/feuille de match|fdme|ordinateur/.test(n)) return "💻";
+    if (/photo|réseau|reseau|insta/.test(n)) return "📸";
+    if (/maillot|linge|lessive|pressing/.test(n)) return "🧺";
+    if (/transport|covoit|voiture|conduire|matériel|materiel/.test(n)) return "🚗";
+    if (/install|salle|but|monter/.test(n)) return "🥅";
+    if (/fête|fete|tournoi|événement|evenement/.test(n)) return "🎉";
+    if (/caisse|argent|budget|sponsor/.test(n)) return "💰";
+    return "🙌"; // par défaut : coup de main
+  }
+
+  /* Affiche la date d'un besoin en français à partir de sa dateISO (période si finISO) */
+  function dateLisible(b) {
+    if (!b.dateISO) return "À venir";
+    const court = iso => new Date(iso + "T00:00:00").toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+    if (b.finISO && b.finISO !== b.dateISO) {
+      return `Du ${court(b.dateISO)} au ${court(b.finISO)}`;
+    }
+    const d = new Date(b.dateISO + "T00:00:00");
+    const txt = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    return txt.charAt(0).toUpperCase() + txt.slice(1);
+  }
+
+  /* Date d'un événement : jour + heure éventuelle */
+  function dateEvent(ev) {
+    const d = new Date(ev.dateISO + "T00:00:00");
+    const txt = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const joli = txt.charAt(0).toUpperCase() + txt.slice(1);
+    return ev.heure ? `${joli} · ${ev.heure.replace(':', 'h')}` : joli;
+  }
+
+  /* ===========================================================
+     AFFICHAGE DES BESOINS
+     =========================================================== */
+  /* Menu ⋯ (modifier/supprimer) — visible seulement en mode responsable */
+  function menuActions(b) {
+    const estResp = peutGerer();
+    if (!estResp) return '';
+    const ligneCloture = b.cloture
+      ? `<button onclick="rouvrirBesoin(${b.id})">🔓 Rouvrir</button>`
+      : `<button onclick="cloturerBesoin(${b.id})">✅ Clôturer</button>`;
+    return `
+      <div class="carte-menu">
+        <button class="btn-menu" onclick="ouvrirMenu(event, ${b.id})">⋯</button>
+        <div class="menu-actions" id="menu-${b.id}">
+          <button onclick="modifierBesoin(${b.id})">✏️ Modifier</button>
+          ${ligneCloture}
+          <button class="suppr" onclick="supprimerBesoin(${b.id})">🗑️ Supprimer</button>
+        </div>
+      </div>`;
+  }
+
+  function carteBesoin(b) {
+    const couvert = b.qui.length >= b.cherche;
+    const pct = Math.min(100, Math.round((b.qui.length / b.cherche) * 100));
+
+    let action;
+    if (b.cloture) {
+      action = `<div class="badge-cloture">🔒 Besoin clôturé</div>`;
+    } else if (couvert) {
+      action = `<div class="badge-couvert">✓ Besoin couvert, merci à tous !</div>`;
+    } else if (b.jeParticipe) {
+      action = `<button class="btn-aide inscrit" onclick="basculer(${b.id})">👍 Tu participes — me retirer</button>`;
+    } else {
+      action = `<button class="btn-aide" onclick="basculer(${b.id})">Je donne un coup de main</button>`;
+    }
+
+    const tr = tempsRestant(b);
+    return `
+      <div class="besoin ${couvert || b.cloture ? 'couvert' : ''} ${b.jeParticipe && !couvert && !b.cloture ? 'inscrit' : ''}">
+        <div class="besoin-haut">
+          <div class="besoin-nom">${iconeMission(b.nom)} ${b.nom}</div>
+          <span class="urgence urgence-${urgenceDe(b)}">${urgences[urgenceDe(b)].emoji} ${urgences[urgenceDe(b)].label}</span>
+          ${menuActions(b)}
+        </div>
+        <div class="meta">
+          <span>📅 ${dateLisible(b)}</span>
+          ${tr ? `<span class="restant ${tr.proche ? 'proche' : ''}">${tr.txt}</span>` : ''}
+          <span>⏱️ ${b.duree}</span>
+          <span class="pole pole-${b.pole}">${b.poleLabel}</span>
+        </div>
+        <div class="jauge-zone">
+          <div class="jauge-info">
+            <span>${b.qui.length} sur ${b.cherche} bénévoles</span>
+            <span>${couvert ? 'Complet' : (b.cherche - b.qui.length) + ' place(s) restante(s)'}</span>
+          </div>
+          <div class="jauge"><div class="jauge-barre" style="width:${pct}%"></div></div>
+        </div>
+        ${blocPrecisions(b)}
+        ${listeParticipants(b)}
+        ${action}
+      </div>`;
+  }
+
+  /* Affiche joliment "Avec : Sarah, toi" — ou rien si personne */
+  function listeParticipants(b) {
+    if (b.qui.length === 0) {
+      return b.cloture ? '' : `<div class="participants vide-part">👥 Sois le premier à aider !</div>`;
+    }
+    const noms = b.qui.map(p => p === MOI ? "toi" : p).join(", ");
+    const n = b.qui.length;
+    return `<div class="participants">👥 ${n} inscrit${n > 1 ? 's' : ''} : ${noms}</div>`;
+  }
+
+  /* Affiche les précisions (le petit mot du responsable) si présentes */
+  function blocPrecisions(b) {
+    if (!b.precisions) return '';
+    return `<div class="precisions">💬 ${b.precisions}</div>`;
+  }
+
+  /* Coup de main compact, affiché à l'intérieur d'une carte événement */
+  function ligneCdm(b) {
+    const couvert = b.qui.length >= b.cherche;
+    const pct = Math.min(100, Math.round((b.qui.length / b.cherche) * 100));
+    let action;
+    if (b.cloture) {
+      action = `<div class="badge-cloture">🔒 Clôturé</div>`;
+    } else if (couvert) {
+      action = `<div class="badge-couvert">✓ Couvert, merci !</div>`;
+    } else if (b.jeParticipe) {
+      action = `<button class="btn-aide inscrit" onclick="basculer(${b.id})">👍 Tu participes — me retirer</button>`;
+    } else {
+      action = `<button class="btn-aide" onclick="basculer(${b.id})">Je donne un coup de main</button>`;
+    }
+    return `
+      <div class="cdm ${couvert || b.cloture ? 'couvert' : ''} ${b.jeParticipe && !couvert && !b.cloture ? 'inscrit' : ''}">
+        <div class="cdm-haut">
+          <div class="cdm-nom">${iconeMission(b.nom)} ${b.nom}</div>
+          <span class="urgence urgence-${urgenceDe(b)}">${urgences[urgenceDe(b)].emoji} ${urgences[urgenceDe(b)].label}</span>
+          ${menuActions(b)}
+        </div>
+        <div class="cdm-meta">
+          <span>⏱️ ${b.duree}</span>
+          <span class="pole pole-${b.pole}">${b.poleLabel}</span>
+        </div>
+        <div class="jauge-zone">
+          <div class="jauge-info">
+            <span>${b.qui.length} sur ${b.cherche} bénévoles</span>
+            <span>${couvert ? 'Complet' : (b.cherche - b.qui.length) + ' place(s)'}</span>
+          </div>
+          <div class="jauge"><div class="jauge-barre" style="width:${pct}%"></div></div>
+        </div>
+        ${blocPrecisions(b)}
+        ${listeParticipants(b)}
+        ${action}
+      </div>`;
+  }
+
+  /* État d'ouverture de l'accordéon : id de l'événement ouvert (un seul) */
+  let eventOuvert = null;
+
+  /* Ouvrir/fermer un événement (un seul ouvert à la fois) */
+  function ouvrirEvent(id) {
+    eventOuvert = (eventOuvert === id) ? null : id;
+    afficherBesoins();
+  }
+
+  /* Filtre courant : tous / aujourdhui / semaine / plustard */
+  let filtreCourant = "tous";
+  function passeFiltre(b) {
+    if (filtreCourant === "tous") return true;
+    const j = joursAvant(b);
+    if (j === null) return filtreCourant === "plustard";
+    if (filtreCourant === "aujourdhui") return j <= 0;
+    if (filtreCourant === "semaine")    return j >= 0 && j <= 7;
+    if (filtreCourant === "plustard")   return j > 7;
+    return true;
+  }
+
+  /* Phrase d'accueil dynamique : nombre d'événements et de coups de main à pourvoir */
+  function majPhraseAccueil() {
+    const aPourvoir = besoins.reduce((s, b) => s + (b.cloture ? 0 : Math.max(0, b.cherche - b.qui.length)), 0);
+    const evActifs = evenements.filter(ev =>
+      besoins.some(b => b.event === ev.id && !b.cloture && b.qui.length < b.cherche)).length;
+
+    let phrase;
+    if (aPourvoir === 0) {
+      phrase = "Tout est couvert pour le moment. Merci à tous ! 💙";
+    } else {
+      const evTxt = evActifs > 0
+        ? `${evActifs} événement${evActifs > 1 ? 's' : ''} ${evActifs > 1 ? 'sont organisés' : 'est organisé'} et `
+        : '';
+      phrase = `Cette semaine, ${evTxt}il reste ${aPourvoir} coup${aPourvoir > 1 ? 's' : ''} de main à pourvoir. 👇`;
+    }
+    document.getElementById('accueil-phrase').textContent = phrase;
+  }
+
+  function afficherBesoins() {
+    majPhraseAccueil();
+
+    // --- Section ÉVÉNEMENTS ---
+    // 1) Pour chaque événement, on calcule son urgence dominante (coup de main le plus urgent NON pourvu)
+    const cartes = evenements.map(ev => {
+      const liste = besoins.filter(b => b.event === ev.id && passeFiltre(b));
+      const ouverts = liste.filter(b => !b.cloture && b.qui.length < b.cherche);
+      const restes = liste.reduce((s, b) => s + (b.cloture ? 0 : Math.max(0, b.cherche - b.qui.length)), 0);
+      // rang le plus urgent parmi les non pourvus (0 = urgent). Si tout pourvu -> ok
+      let rangMin = ouverts.length
+        ? Math.min(...ouverts.map(b => urgences[urgenceDe(b)].rang))
+        : 99;
+      const niveau = rangMin === 0 ? "urgent" : rangMin === 1 ? "bientot" : rangMin === 2 ? "tranquille" : "ok";
+      return { ev, liste, restes, rangMin, niveau };
+    }).filter(c => c.liste.length > 0);
+
+    // 2) Tri : urgences d'abord (rangMin croissant), puis chronologique (quand croissant)
+    cartes.sort((a, b) => a.rangMin - b.rangMin || a.ev.quand - b.ev.quand);
+
+    document.getElementById('liste-events').innerHTML = cartes.map(c => {
+      const lignes = [...c.liste]
+        .sort((a, b) => urgences[urgenceDe(a)].rang - urgences[urgenceDe(b)].rang || b.importance - a.importance)
+        .map(ligneCdm).join('');
+      const restesTxt = c.restes > 0
+        ? `Il reste ${c.restes} coup(s) de main`
+        : "✓ Tout est couvert, bravo !";
+      return `
+        <div class="event bord-${c.niveau} ${eventOuvert === c.ev.id ? 'ouvert' : ''}" data-event="${c.ev.id}">
+          <div class="event-haut" onclick="ouvrirEvent('${c.ev.id}')">
+            <div class="infos">
+              <div class="event-nom">${c.ev.emoji} ${c.ev.nom}</div>
+              <div class="event-date">${dateEvent(c.ev)}</div>
+              <div class="event-reste ${c.restes > 0 && c.rangMin === 0 ? 'urgent' : ''}">${restesTxt}</div>
+            </div>
+            <div class="event-fleche">▼</div>
+          </div>
+          <div class="event-corps">${lignes}</div>
+        </div>`;
+    }).join('') || `<div class="vide"><div class="icone">📅</div><p>Aucun événement à venir.</p></div>`;
+
+    // --- Section COUPS DE MAIN LIBRES (sans événement) ---
+    const libres = besoins.filter(b => !b.event && passeFiltre(b)).sort((a, b) => {
+      const aC = a.qui.length >= a.cherche, bC = b.qui.length >= b.cherche;
+      if (aC !== bC) return aC ? 1 : -1;
+      return urgences[urgenceDe(a)].rang - urgences[urgenceDe(b)].rang || b.importance - a.importance;
+    });
+    document.getElementById('titre-libres').style.display = libres.length ? '' : 'none';
+    document.getElementById('liste-libres').innerHTML = libres.map(carteBesoin).join('');
+
+    // --- Mes engagements ---
+    const miens = besoins.filter(b => b.jeParticipe);
+    const zone = document.getElementById('mes-engagements');
+    zone.innerHTML = miens.length
+      ? miens.map(carteBesoin).join('')
+      : `<div class="vide"><div class="icone">🙌</div><p>Tu ne t'es proposé sur aucune mission pour l'instant.</p></div>`;
+  }
+
+  /* ===========================================================
+     LA BOUCLE : se proposer / se retirer (via pop-up)
+     =========================================================== */
+  /* ===========================================================
+     MENU RESPONSABLE : modifier / supprimer une mission
+     =========================================================== */
+  function ouvrirMenu(ev, id) {
+    ev.stopPropagation();
+    const menu = document.getElementById('menu-' + id);
+    const dejaOuvert = menu.classList.contains('ouvert');
+    // Fermer tous les menus
+    document.querySelectorAll('.menu-actions').forEach(m => m.classList.remove('ouvert'));
+    if (!dejaOuvert) menu.classList.add('ouvert');
+  }
+  // Clic ailleurs : referme les menus
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.carte-menu')) {
+      document.querySelectorAll('.menu-actions').forEach(m => m.classList.remove('ouvert'));
+    }
+  });
+
+  function supprimerBesoin(id) {
+    const b = besoins.find(x => x.id === id);
+    if (!b) return;
+    document.querySelectorAll('.menu-actions').forEach(m => m.classList.remove('ouvert'));
+    ouvrirModale({
+      emoji: "🗑️",
+      titre: "Supprimer ce besoin ?",
+      texte: `« ${b.nom} » sera retiré. Les bénévoles inscrits ne le verront plus.`,
+      labelOk: "Oui, supprimer",
+      styleOk: "danger",
+      labelNon: "Annuler",
+      onOk: () => {
+        besoins = besoins.filter(x => x.id !== id);
+        afficherBesoins();
+        montrerToast("Besoin supprimé.");
+      }
+    });
+  }
+
+  function cloturerBesoin(id) {
+    const b = besoins.find(x => x.id === id);
+    if (!b) return;
+    document.querySelectorAll('.menu-actions').forEach(m => m.classList.remove('ouvert'));
+    ouvrirModale({
+      emoji: "✅",
+      titre: "Clôturer ce besoin ?",
+      texte: `« ${b.nom} » sera marqué comme terminé. Les bénévoles ne pourront plus s'y inscrire. Tu pourras le rouvrir à tout moment.`,
+      labelOk: "Oui, clôturer",
+      styleOk: "principal",
+      labelNon: "Annuler",
+      onOk: () => {
+        b.cloture = true;
+        afficherBesoins();
+        montrerToast("Besoin clôturé ✅");
+      }
+    });
+  }
+
+  function rouvrirBesoin(id) {
+    const b = besoins.find(x => x.id === id);
+    if (!b) return;
+    document.querySelectorAll('.menu-actions').forEach(m => m.classList.remove('ouvert'));
+    b.cloture = false;
+    afficherBesoins();
+    montrerToast("Besoin rouvert 🔓");
+  }
+
+  function basculer(id) {
+    const b = besoins.find(x => x.id === id);
+    if (!b) return;
+    if (b.cloture) { montrerToast("Ce besoin est clôturé."); return; }
+    if (!MON_ID) { montrerToast("Reconnecte-toi pour t'inscrire."); return; }
+
+    if (b.jeParticipe) {
+      // Se retirer : pop-up avec ton plus prudent
+      ouvrirModale({
+        emoji: "🤔",
+        titre: "Te retirer ?",
+        texte: `Tu ne participeras plus à « ${b.nom} ». La place se rouvrira pour un autre bénévole.`,
+        labelOk: "Oui, me retirer",
+        styleOk: "danger",
+        labelNon: "Garder ma place",
+        onOk: async () => {
+          const { error } = await sb.from('inscriptions').delete()
+            .eq('besoin_id', id).eq('membre_id', MON_ID);
+          if (error) { console.error('Retrait échoué', error); montrerToast("Erreur, réessaie."); return; }
+          await chargerBesoins();
+          montrerToast("Tu t'es retiré de cette mission.");
+        }
+      });
+    } else {
+      // S'engager : pop-up de confirmation
+      ouvrirModale({
+        emoji: "🙌",
+        titre: "Confirmer ton coup de main ?",
+        texte: `Tu t'engages pour « ${b.nom} ».`,
+        labelOk: "Je confirme",
+        styleOk: "principal",
+        labelNon: "Annuler",
+        onOk: async () => {
+          const { error } = await sb.from('inscriptions').insert({ besoin_id: id, membre_id: MON_ID });
+          if (error) {
+            // 23505 = déjà inscrit (contrainte unique) : pas grave
+            if (error.code !== '23505') { console.error('Inscription échouée', error); montrerToast("Erreur, réessaie."); return; }
+          }
+          await chargerBesoins();
+          const bMaj = besoins.find(x => x.id === id);
+          const reste = bMaj ? bMaj.cherche - bMaj.qui.length : 0;
+          let msg;
+          if (bMaj && bMaj.qui.length >= bMaj.cherche) {
+            msg = "🎉 Grâce à toi, cette mission est couverte ! Merci ❤️";
+          } else if (reste === 1) {
+            msg = "Merci ! Plus qu'une personne et c'est complet 🙌";
+          } else {
+            msg = "Merci pour ton coup de main ! Le club fonctionne mieux grâce à toi 💙";
+          }
+          montrerToast(msg);
+        }
+      });
+    }
+  }
+
+  /* Moteur générique de pop-up */
+  const modaleFond = document.getElementById('modale-fond');
+  let actionOk = null;
+
+  function ouvrirModale({ emoji, titre, texte, labelOk, styleOk, labelNon, onOk }) {
+    document.getElementById('modale-emoji').textContent = emoji;
+    document.getElementById('modale-titre').textContent = titre;
+    document.getElementById('modale-texte').textContent = texte;
+    const ok = document.getElementById('modale-ok');
+    ok.textContent = labelOk;
+    ok.className = "btn-modale " + (styleOk || "principal");
+    document.getElementById('modale-non').textContent = labelNon || "Annuler";
+    actionOk = onOk;
+    modaleFond.classList.add('ouvert');
+  }
+  function fermerModale() {
+    modaleFond.classList.remove('ouvert');
+    actionOk = null;
+  }
+  document.getElementById('modale-ok').addEventListener('click', () => {
+    const a = actionOk;
+    fermerModale();
+    if (a) a();
+  });
+  document.getElementById('modale-non').addEventListener('click', fermerModale);
+  modaleFond.addEventListener('click', (e) => { if (e.target === modaleFond) fermerModale(); });
+
+  let toastTimer;
+  function montrerToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('visible'), 2200);
+  }
+
+  /* ===========================================================
+     NAVIGATION
+     =========================================================== */
+  const onglets = document.querySelectorAll('.nav-item');
+  const ecrans  = document.querySelectorAll('.ecran');
+  function afficher(cible) {
+    ecrans.forEach(e => e.classList.toggle('actif', e.dataset.ecran === cible));
+    onglets.forEach(o => o.classList.toggle('actif', o.dataset.cible === cible));
+  }
+  onglets.forEach(o => o.addEventListener('click', () => afficher(o.dataset.cible)));
+
+  /* Filtres de l'accueil */
+  document.querySelectorAll('.filtre').forEach(f =>
+    f.addEventListener('click', () => {
+      document.querySelectorAll('.filtre').forEach(x => x.classList.remove('actif'));
+      f.classList.add('actif');
+      filtreCourant = f.dataset.filtre;
+      afficherBesoins();
+    })
+  );
+
+  /* ===========================================================
+     CRÉER UN BESOIN : ouvrir / fermer le panneau, publier
+     =========================================================== */
+  const voile   = document.getElementById('voile');
+  const panneau = document.getElementById('panneau');
+  const panneauChoix = document.getElementById('panneau-choix');
+  const panneauEvent = document.getElementById('panneau-event');
+
+  /* Ferme tous les panneaux et le voile */
+  function fermerTout() {
+    voile.classList.remove('ouvert');
+    panneau.classList.remove('ouvert');
+    panneauChoix.classList.remove('ouvert');
+    panneauEvent.classList.remove('ouvert');
+  }
+
+  function ouvrirPanneau() {
+    fermerTout();
+    voile.classList.add('ouvert');
+    panneau.classList.add('ouvert');
+  }
+  function fermerPanneau() { fermerTout(); }
+
+  /* Volet de choix besoin / événement */
+  function ouvrirChoix() {
+    fermerTout();
+    voile.classList.add('ouvert');
+    panneauChoix.classList.add('ouvert');
+  }
+  /* Panneau création d'événement */
+  function ouvrirPanneauEvent() {
+    fermerTout();
+    resetFormEvent();
+    voile.classList.add('ouvert');
+    panneauEvent.classList.add('ouvert');
+  }
+
+  /* ===== Navigation en 3 étapes ===== */
+  const titresEtapes = { 1: "Quoi ?", 2: "Quand & combien ?", 3: "Détails ?" };
+  let etapeCourante = 1;
+
+  function allerEtape(n) {
+    etapeCourante = n;
+    document.querySelectorAll('.etape-form').forEach(f =>
+      f.classList.toggle('actif', parseInt(f.dataset.form, 10) === n));
+    document.getElementById('prog-barre').style.width = (n / 3 * 100) + '%';
+    document.getElementById('prog-txt').textContent = `Étape ${n} sur 3 · ${titresEtapes[n]}`;
+
+    // Boutons : Retour visible dès l'étape 2 ; Suivant jusqu'à 2, Publier à l'étape 3
+    document.getElementById('btn-prec').style.display = (n > 1) ? '' : 'none';
+    document.getElementById('btn-suiv').style.display = (n < 3) ? '' : 'none';
+    document.getElementById('btn-publier').style.display = (n === 3) ? '' : 'none';
+
+    // À l'étape 2 : si un événement est choisi, on masque la date (elle vient de l'événement)
+    if (n === 2) {
+      const aEvent = !!document.getElementById('f-event').value;
+      document.getElementById('bloc-date').style.display = aEvent ? 'none' : '';
+      document.getElementById('bloc-date-event').style.display = aEvent ? '' : 'none';
+    }
+  }
+
+  document.getElementById('btn-suiv').addEventListener('click', () => {
+    // Validation minimale de l'étape 1 : il faut un nom
+    if (etapeCourante === 1) {
+      const nom = document.getElementById('f-nom').value.trim();
+      if (!nom) { montrerToast("Donne un nom au besoin 🙂"); return; }
+    }
+    if (etapeCourante < 3) allerEtape(etapeCourante + 1);
+  });
+  document.getElementById('btn-prec').addEventListener('click', () => {
+    if (etapeCourante > 1) allerEtape(etapeCourante - 1);
+  });
+
+  document.getElementById('btn-plus').addEventListener('click', ouvrirChoix);
+
+  // Depuis le volet de choix
+  document.getElementById('choix-besoin').addEventListener('click', () => { resetPanneauCreation(); allerEtape(1); ouvrirPanneau(); });
+  document.getElementById('choix-event').addEventListener('click', ouvrirPanneauEvent);
+  document.getElementById('btn-annuler-choix').addEventListener('click', fermerTout);
+
+  // Bouton créer un événement dans l'onglet Événements
+  document.getElementById('btn-creer-event').addEventListener('click', ouvrirPanneauEvent);
+  document.getElementById('btn-annuler-event').addEventListener('click', fermerTout);
+  document.getElementById('btn-annuler').addEventListener('click', () => { resetPanneauCreation(); fermerPanneau(); });
+  voile.addEventListener('click', fermerTout);
+
+  /* Modèles de missions (club de handball) : pré-remplissent le formulaire */
+  /* ===========================================================
+     QUESTIONNAIRE "TROUVER MA PLACE" (données)
+     =========================================================== */
+  const qFamilles = [
+    { titre: "Sur le terrain", options: [
+      { id: "table",    ico: "⏱️", lbl: "Table de marque",      desc: "Chronomètre et feuille de match au bord du terrain, pendant les rencontres." },
+      { id: "salle",    ico: "🛡️", lbl: "Responsable de salle",  desc: "Tu veilles au bon déroulement, accueilles les équipes et fais respecter l'ordre dans la salle." },
+      { id: "arbitrage",ico: "🟨", lbl: "Arbitrage",             desc: "Tu siffles les rencontres des jeunes. Une formation est proposée si besoin." },
+      { id: "coaching", ico: "🤝", lbl: "Coup de main coaching", desc: "Tu épaules ou remplaces ponctuellement un coach absent sur un entraînement ou un match." },
+    ]},
+    { titre: "Convivialité", options: [
+      { id: "buvette",  ico: "🍔", lbl: "Buvette",                desc: "Tu accueilles, sers boissons et snacks, et tiens la caisse pendant les matchs." },
+      { id: "gouter",   ico: "🍊", lbl: "Goûter après les matchs",desc: "Tu apportes le goûter ou les oranges pour les enfants après la rencontre." },
+    ]},
+    { titre: "Logistique", options: [
+      { id: "transport",ico: "🚗", lbl: "Transport des jeunes",  desc: "Tu conduis ou organises le covoiturage des licenciés pour les matchs à l'extérieur." },
+      { id: "courses",  ico: "🛒", lbl: "Courses",               desc: "Tu fais les achats pour le club : boissons, gobelets, petit matériel." },
+      { id: "materiel", ico: "👕", lbl: "Matériel & commandes",  desc: "Tu aides à gérer le stock et les commandes d'équipements du club." },
+      { id: "chasubles",ico: "🧺", lbl: "Laver les chasubles",   desc: "Tu prends en charge le lavage des chasubles, en rotation avec d'autres parents." },
+    ]},
+    { titre: "Autour du club", options: [
+      { id: "photos",   ico: "📸", lbl: "Photos & réseaux",      desc: "Tu prends des photos des matchs et animes les réseaux sociaux du club." },
+      { id: "inscriptions",ico:"📋",lbl: "Aide aux inscriptions",desc: "Tu donnes un coup de main pour les dossiers de licence en début de saison." },
+      { id: "sponsors", ico: "🤝", lbl: "Trouver des partenaires",desc: "Tu démarches des sponsors et partenaires locaux pour soutenir le club." },
+    ]},
+  ];
+  const qFrequences = [
+    { id: "an",        ico: "🙂", titre: "Une à deux fois par an",  sous: "Quand je peux, sans pression" },
+    { id: "trimestre", ico: "📅", titre: "Une fois par trimestre",  sous: "Quelques coups de main dans la saison" },
+    { id: "mois",      ico: "🗓️", titre: "Une fois par mois",       sous: "Régulièrement mais tranquillement" },
+    { id: "quinzaine", ico: "💪", titre: "Une fois tous les 15 jours", sous: "Assez impliqué" },
+  ];
+  let qChoixMissions = new Set();
+  let qChoixFreq = null;
+
+  const modelesMission = {
+    salle:    { nom: "Responsable de salle",        pole: "evenementiel", duree: "2 h", cherche: 1 },
+    table:    { nom: "Table de marque (2 pers.)",   pole: "sportif",    duree: "2 h", cherche: 2 },
+    buvette:  { nom: "Tenir la buvette",            pole: "evenementiel", duree: "2 h", cherche: 2 },
+    arbitrage:{ nom: "Arbitrage",                   pole: "sportif",    duree: "2 h", cherche: 1 },
+    courses:  { nom: "Faire les courses",           pole: "evenementiel", duree: "1 h", cherche: 1 },
+    local:    { nom: "Ranger le local",             pole: "evenementiel", duree: "1 h", cherche: 2 },
+    coaching: { nom: "Coup de main coaching",       pole: "sportif",    duree: "2 h", cherche: 1 },
+    feuille:  { nom: "Mettre à jour la feuille de match", pole: "sportif", duree: "5 min", cherche: 1 },
+  };
+  document.querySelectorAll('#modeles .modele').forEach(btn =>
+    btn.addEventListener('click', () => {
+      const m = modelesMission[btn.dataset.modele];
+      if (!m) return;
+      document.getElementById('f-nom').value = m.nom;
+      document.getElementById('f-pole').value = m.pole;
+      document.getElementById('f-duree').value = m.duree;
+      document.getElementById('f-cherche').value = m.cherche;
+      document.querySelectorAll('#modeles .modele').forEach(x => x.classList.remove('choisi'));
+      btn.classList.add('choisi');
+    })
+  );
+
+  /* ===========================================================
+     CRÉATION D'ÉVÉNEMENT
+     =========================================================== */
+  let typeEventChoisi = null;   // { type, emoji }
+  let prochainEventId = 1;
+
+  /* Sélection d'un type d'événement (pré-remplit le nom si vide) */
+  document.querySelectorAll('#types-event .modele').forEach(btn =>
+    btn.addEventListener('click', () => {
+      typeEventChoisi = { type: btn.dataset.type, emoji: btn.dataset.emoji };
+      document.querySelectorAll('#types-event .modele').forEach(x => x.classList.remove('choisi'));
+      btn.classList.add('choisi');
+      // Pré-remplir un nom suggéré si le champ est vide (sauf "Autre")
+      const champNom = document.getElementById('fe-nom');
+      if (!champNom.value.trim() && btn.dataset.type !== 'autre') {
+        const noms = { match: "Match ", tournoi: "Tournoi ", stage: "Stage ", reunion: "Réunion", fete: "Fête du club" };
+        champNom.value = noms[btn.dataset.type] || '';
+      }
+    })
+  );
+
+  function resetFormEvent() {
+    typeEventChoisi = null;
+    document.querySelectorAll('#types-event .modele').forEach(x => x.classList.remove('choisi'));
+    document.getElementById('fe-nom').value = '';
+    document.getElementById('fe-date').value = '';
+    document.getElementById('fe-heure').value = '';
+  }
+
+  /* Remplit le menu "événement" du formulaire besoin */
+  function rafraichirMenuEvenements() {
+    const sel = document.getElementById('f-event');
+    sel.innerHTML = '<option value="">Aucun — coup de main libre</option>';
+    evenements.forEach(ev => {
+      const o = document.createElement('option');
+      o.value = ev.id;
+      o.textContent = ev.emoji + " " + ev.nom;
+      sel.appendChild(o);
+    });
+  }
+
+  /* Affiche la liste des événements dans l'onglet Événements */
+  function afficherOngletEvenements() {
+    const zone = document.getElementById('liste-events-onglet');
+    if (!evenements.length) {
+      zone.innerHTML = `<div class="vide"><div class="icone">📅</div><p>Aucun événement pour l'instant.</p></div>`;
+      return;
+    }
+    const tri = [...evenements].sort((a, b) => (a.dateISO || '').localeCompare(b.dateISO || ''));
+    zone.innerHTML = tri.map(ev => {
+      const nb = besoins.filter(b => b.event === ev.id).length;
+      const d = ev.dateISO ? new Date(ev.dateISO + "T00:00:00")
+        .toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Date à venir';
+      const dCap = d.charAt(0).toUpperCase() + d.slice(1);
+      const heure = ev.heure ? ' · ' + ev.heure.replace(':', 'h') : '';
+      return `
+        <div class="event-ligne">
+          <span class="ev-emoji">${ev.emoji}</span>
+          <div class="ev-info">
+            <div class="ev-nom">${ev.nom}</div>
+            <div class="ev-date">${dCap}${heure}</div>
+          </div>
+          <span class="ev-compte">${nb} coup${nb > 1 ? 's' : ''} de main</span>
+        </div>`;
+    }).join('');
+  }
+
+  /* Créer l'événement */
+  document.getElementById('btn-publier-event').addEventListener('click', () => {
+    const nom   = document.getElementById('fe-nom').value.trim();
+    const dateISO = document.getElementById('fe-date').value;
+    const heure = document.getElementById('fe-heure').value;
+
+    if (!nom) { montrerToast("Donne un nom à l'événement 🙂"); return; }
+    if (!dateISO) { montrerToast("Choisis une date 🙂"); return; }
+
+    const emoji = typeEventChoisi ? typeEventChoisi.emoji : "📅";
+    const id = "ev" + (prochainEventId++);
+    evenements.push({ id, nom, emoji, dateISO, heure: heure || "", quand: evenements.length + 1 });
+
+    resetFormEvent();
+    fermerTout();
+    rafraichirMenuEvenements();
+    afficherBesoins();
+    afficherOngletEvenements();
+    montrerToast("Événement créé ! 📅");
+  });
+
+  /* Adapte l'interface au rôle réel du compte connecté */
+  const navPlus = document.querySelector('.nav-plus');
+  function majModeResponsable() {
+    const gere = peutGerer();
+    navPlus.style.visibility = gere ? 'visible' : 'hidden';
+    document.getElementById('zone-demandes').style.display = gere ? 'block' : 'none';
+    if (gere) afficherDemandes();
+    // Zone de gestion des annonces : dirigeants
+    const za = document.getElementById('zone-annonces-gestion');
+    if (za) za.style.display = gere ? 'block' : 'none';
+    // Section administration : webmaster seulement
+    const admin = document.getElementById('zone-admin');
+    if (admin) {
+      admin.style.display = estWebmaster() ? 'block' : 'none';
+      if (estWebmaster()) afficherMembresAdmin();
+    }
+    afficherBesoins(); // les menus ⋯ dépendent du rôle
+  }
+
+  /* Liste de tous les membres validés + changement de rôle (webmaster) */
+  function afficherMembresAdmin() {
+    const zone = document.getElementById('liste-membres');
+    const valides = comptesDemo.filter(c => c.statut === 'valide');
+    if (!valides.length) { zone.innerHTML = `<p class="sous-titre" style="font-size:13px;">Aucun membre.</p>`; return; }
+    zone.innerHTML = valides.map(c => `
+      <div class="membre-ligne">
+        <div class="m-info">
+          <div class="m-nom">${c.prenom} ${c.nom || ''}</div>
+          <div class="m-sous">${c.identifiant}</div>
+        </div>
+        <select onchange="changerRole('${c.identifiant}', this.value)">
+          <option value="benevole"    ${c.role === 'benevole' ? 'selected' : ''}>Bénévole</option>
+          <option value="responsable" ${c.role === 'responsable' ? 'selected' : ''}>Responsable</option>
+          <option value="webmaster"   ${c.role === 'webmaster' ? 'selected' : ''}>Webmaster</option>
+        </select>
+      </div>`).join('');
+  }
+  function changerRole(id, nouveauRole) {
+    const c = comptesDemo.find(x => x.identifiant === id);
+    if (!c) return;
+    c.role = nouveauRole;
+    sb.from('membres').update({ role: nouveauRole }).eq('identifiant', id)
+      .then(({ error }) => { if (error) console.error('MAJ rôle échouée', error); });
+    montrerToast(`${c.prenom} est maintenant ${nouveauRole}.`);
+  }
+
+  /* Création d'un compte par le webmaster */
+  document.getElementById('btn-creer-compte').addEventListener('click', () => {
+    const f = document.getElementById('form-compte');
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  });
+  document.getElementById('a-annuler').addEventListener('click', () => {
+    document.getElementById('form-compte').style.display = 'none';
+  });
+  document.getElementById('a-creer').addEventListener('click', async () => {
+    const prenom = document.getElementById('a-prenom').value.trim();
+    const nom    = document.getElementById('a-nom').value.trim();
+    const id     = document.getElementById('a-id').value.trim().toLowerCase();
+    const role   = document.getElementById('a-role').value;
+    const err = document.getElementById('a-erreur');
+    err.classList.remove('visible');
+    const stop = (m) => { err.textContent = m; err.classList.add('visible'); };
+
+    if (!prenom) { stop("Indique un prénom."); return; }
+    if (!id) { stop("Choisis un identifiant."); return; }
+    if (comptesDemo.some(c => c.identifiant === id)) { stop("Cet identifiant est déjà pris."); return; }
+
+    const nouveau = { identifiant: id, prenom, nom, role, statut: 'valide', pin: null, tel: '', email: '' };
+    // Écrit dans Supabase
+    const { error } = await sb.from('membres').insert({
+      identifiant: id, prenom, nom, role, statut: 'valide', pin: null
+    });
+    if (error) { console.error('Création compte échouée', error); stop("Erreur : compte non créé."); return; }
+
+    comptesDemo.push(nouveau);
+    document.getElementById('a-prenom').value = '';
+    document.getElementById('a-nom').value = '';
+    document.getElementById('a-id').value = '';
+    document.getElementById('a-role').value = 'benevole';
+    document.getElementById('form-compte').style.display = 'none';
+    afficherMembresAdmin();
+    montrerToast(`Compte créé : ${prenom} (${role}). Il choisira son PIN à la 1re connexion.`);
+  });
+
+  /* ===========================================================
+     ANNONCES (messages d'accueil du club)
+     =========================================================== */
+  let annonces = [];   // cache des annonces actives
+
+  async function chargerAnnonces() {
+    const { data, error } = await sb.from('annonces')
+      .select('*').eq('active', true).order('cree_le', { ascending: false });
+    if (error) { console.error('Chargement annonces échoué', error); return; }
+    annonces = data || [];
+    afficherBandeauAnnonces();
+    afficherAnnoncesGestion();
+    ouvrirPopupNouvelles();
+  }
+
+  /* Bandeau permanent en haut de l'accueil */
+  function afficherBandeauAnnonces() {
+    const zone = document.getElementById('bandeau-annonces');
+    if (!annonces.length) { zone.innerHTML = ''; return; }
+    zone.innerHTML = annonces.map(a => `
+      <div class="annonce-bandeau ${a.niveau === 'urgent' ? 'urgent' : ''}">
+        <div class="an-titre">${a.niveau === 'urgent' ? '🔴' : '📣'} ${a.titre}</div>
+        <div class="an-texte">${a.texte}</div>
+      </div>`).join('');
+  }
+
+  /* Pop-up : montre les annonces pas encore vues sur cet appareil */
+  function annoncesVues() {
+    try { return JSON.parse(memLire('assopilot_annonces_vues') || '[]'); } catch (e) { return []; }
+  }
+  function marquerVues(ids) {
+    memEcrire('assopilot_annonces_vues', JSON.stringify(ids));
+  }
+  function ouvrirPopupNouvelles() {
+    const vues = annoncesVues();
+    const nouvelles = annonces.filter(a => !vues.includes(a.id));
+    if (!nouvelles.length) return;
+    const contenu = document.getElementById('annonce-pop-contenu');
+    contenu.innerHTML = nouvelles.map(a => `
+      <div style="margin-bottom:14px;">
+        <div style="font-size:16px; font-weight:800; color:var(--sapin);">${a.niveau === 'urgent' ? '🔴' : '📣'} ${a.titre}</div>
+        <div style="font-size:14px; color:var(--gris-texte); margin-top:4px; line-height:1.45;">${a.texte}</div>
+      </div>`).join('');
+    document.getElementById('annonce-pop-fond').classList.add('ouvert');
+  }
+  document.getElementById('annonce-pop-ok').addEventListener('click', () => {
+    marquerVues(annonces.map(a => a.id));   // on marque tout comme vu
+    document.getElementById('annonce-pop-fond').classList.remove('ouvert');
+  });
+
+  /* Gestion (dirigeants) : liste des annonces actives avec retrait */
+  function afficherAnnoncesGestion() {
+    const zone = document.getElementById('liste-annonces-gestion');
+    if (!zone) return;
+    if (!annonces.length) { zone.innerHTML = `<p class="sous-titre" style="font-size:13px;">Aucun message actif.</p>`; return; }
+    zone.innerHTML = annonces.map(a => `
+      <div class="annonce-gest-ligne">
+        <div class="ag-info">
+          <div class="ag-titre">${a.niveau === 'urgent' ? '🔴' : '📣'} ${a.titre}</div>
+          <div class="ag-texte">${a.texte}</div>
+        </div>
+        <button onclick="retirerAnnonce('${a.id}')">Retirer</button>
+      </div>`).join('');
+  }
+
+  /* Publier / retirer */
+  document.getElementById('btn-creer-annonce').addEventListener('click', () => {
+    const f = document.getElementById('form-annonce');
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  });
+  document.getElementById('an-annuler').addEventListener('click', () => {
+    document.getElementById('form-annonce').style.display = 'none';
+  });
+  document.getElementById('an-publier').addEventListener('click', async () => {
+    const titre = document.getElementById('an-titre').value.trim();
+    const texte = document.getElementById('an-texte').value.trim();
+    const niveau = document.getElementById('an-niveau').value;
+    const err = document.getElementById('an-erreur');
+    err.classList.remove('visible');
+    if (!titre || !texte) { err.textContent = "Donne un titre et un message."; err.classList.add('visible'); return; }
+
+    const { error } = await sb.from('annonces').insert({ titre, texte, niveau, active: true, auteur: MOI });
+    if (error) { console.error('Publication annonce échouée', error); err.textContent = "Erreur : message non publié."; err.classList.add('visible'); return; }
+
+    document.getElementById('an-titre').value = '';
+    document.getElementById('an-texte').value = '';
+    document.getElementById('an-niveau').value = 'info';
+    document.getElementById('form-annonce').style.display = 'none';
+    await chargerAnnonces();
+    montrerToast("Message publié 📣");
+  });
+  async function retirerAnnonce(id) {
+    const { error } = await sb.from('annonces').update({ active: false }).eq('id', id);
+    if (error) { console.error('Retrait annonce échoué', error); return; }
+    await chargerAnnonces();
+    montrerToast("Message retiré.");
+  }
+
+  /* Demandes d'inscription en attente (côté responsable) */
+  function afficherDemandes() {
+    const zone = document.getElementById('liste-demandes');
+    const attente = comptesDemo.filter(c => c.statut === "attente");
+    if (!attente.length) {
+      zone.innerHTML = `<p class="sous-titre" style="font-size:13px;">Aucune demande en attente.</p>`;
+      return;
+    }
+    zone.innerHTML = attente.map(c => `
+      <div class="demande">
+        <div class="demande-nom">${c.prenom} ${c.nom}</div>
+        <div class="demande-info">Identifiant : ${c.identifiant}${c.tel ? ' · 📞 ' + c.tel : ''}${c.email ? ' · ✉️ ' + c.email : ''}</div>
+        <div class="demande-actions">
+          <button class="btn-valider" onclick="validerDemande('${c.identifiant}')">✓ Valider</button>
+          <button class="btn-refuser" onclick="refuserDemande('${c.identifiant}')">Refuser</button>
+        </div>
+      </div>`).join('');
+  }
+  function validerDemande(id) {
+    const c = comptesDemo.find(x => x.identifiant === id);
+    if (!c) return;
+    c.statut = "valide";
+    afficherDemandes();
+    sb.from('membres').update({ statut: 'valide' }).eq('identifiant', id)
+      .then(({ error }) => { if (error) console.error('Validation échouée', error); });
+    montrerToast(`${c.prenom} peut maintenant se connecter 🎉`);
+  }
+  function refuserDemande(id) {
+    const c = comptesDemo.find(x => x.identifiant === id);
+    if (!c) return;
+    c.statut = "refuse";
+    afficherDemandes();
+    sb.from('membres').update({ statut: 'refuse' }).eq('identifiant', id)
+      .then(({ error }) => { if (error) console.error('Refus échoué', error); });
+    montrerToast("Demande refusée.");
+  }
+
+  /* Si défini, on est en train de MODIFIER ce besoin (sinon on en crée un) */
+  let besoinEnEdition = null;
+
+  /* Remet le panneau en mode "création" */
+  function resetPanneauCreation() {
+    besoinEnEdition = null;
+    document.getElementById('panneau-titre').textContent = "Nouveau besoin";
+    document.getElementById('btn-publier').textContent = "Publier le besoin";
+    document.getElementById('modeles').style.display = '';
+    document.getElementById('f-nom').value = '';
+    document.getElementById('f-event').value = '';
+    document.getElementById('f-date').value = '';
+    document.getElementById('f-heure').value = '';
+    document.getElementById('f-duree').value = '';
+    document.getElementById('f-precisions').value = '';
+    document.getElementById('f-cherche').value = 2;
+    document.getElementById('f-pole').value = 'sportif';
+    document.getElementById('f-urgence').value = 'auto';
+    document.querySelectorAll('#modeles .modele').forEach(x => x.classList.remove('choisi'));
+    allerEtape(1);
+  }
+
+  /* Ouvre le panneau pré-rempli pour modifier un besoin */
+  function modifierBesoin(id) {
+    const b = besoins.find(x => x.id === id);
+    if (!b) return;
+    document.querySelectorAll('.menu-actions').forEach(m => m.classList.remove('ouvert'));
+    besoinEnEdition = id;
+    document.getElementById('panneau-titre').textContent = "Modifier le besoin";
+    document.getElementById('btn-publier').textContent = "Enregistrer";
+    document.getElementById('modeles').style.display = 'none'; // pas de modèles en édition
+    document.getElementById('f-nom').value = b.nom;
+    document.getElementById('f-event').value = b.event || '';
+    document.getElementById('f-pole').value = b.pole;
+    document.getElementById('f-date').value = b.event ? '' : (b.dateISO || '');
+    document.getElementById('f-duree').value = (b.duree === "—") ? '' : b.duree;
+    document.getElementById('f-precisions').value = b.precisions || '';
+    document.getElementById('f-cherche').value = b.cherche;
+    document.getElementById('f-urgence').value = b.urgenceForcee || 'auto';
+    allerEtape(1);
+    ouvrirPanneau();
+  }
+
+  document.getElementById('btn-publier').addEventListener('click', () => {
+    const nom    = document.getElementById('f-nom').value.trim();
+    const event  = document.getElementById('f-event').value || null;
+    const pole   = document.getElementById('f-pole').value;
+    const dateISO = document.getElementById('f-date').value;
+    const duree  = document.getElementById('f-duree').value.trim();
+    const niveau = document.getElementById('f-urgence').value;
+    const precisions = document.getElementById('f-precisions').value.trim();
+    const cherche = parseInt(document.getElementById('f-cherche').value, 10);
+
+    if (!nom) { montrerToast("Donne un nom au besoin 🙂"); return; }
+    if (!cherche || cherche < 1) { montrerToast("Indique au moins 1 bénévole."); return; }
+
+    const ev = evenements.find(e => e.id === event);
+    const dateFinale = ev ? ev.dateISO : (dateISO || null);
+
+    if (besoinEnEdition !== null) {
+      // --- MODIFICATION ---
+      const b = besoins.find(x => x.id === besoinEnEdition);
+      if (b) {
+        b.nom = nom;
+        b.event = event;
+        b.pole = pole;
+        b.poleLabel = labelsPole[pole];
+        b.dateISO = dateFinale;
+        b.duree = duree || "—";
+        b.urgenceForcee = niveau === "auto" ? null : niveau;
+        b.precisions = precisions;
+        // si on demande moins de bénévoles que d'inscrits, on garde au moins le nb d'inscrits
+        b.cherche = Math.max(cherche, b.qui.length);
+      }
+      resetPanneauCreation();
+      fermerPanneau();
+      afficher('accueil');
+      afficherBesoins();
+      montrerToast("Besoin mis à jour ✏️");
+    } else {
+      // --- CRÉATION ---
+      besoins.unshift({
+        id: prochainId++,
+        nom, event, pole,
+        poleLabel: labelsPole[pole],
+        dateISO: dateFinale,
+        duree: duree || "—",
+        urgenceForcee: niveau === "auto" ? null : niveau,
+        importance: 1,
+        precisions,
+        cherche,
+        qui: [],
+        jeParticipe: false
+      });
+      resetPanneauCreation();
+      fermerPanneau();
+      afficher('accueil');
+      afficherBesoins();
+      montrerToast("Besoin publié ! 🎉");
+    }
+  });
+
+  /* ===========================================================
+     CONNEXION — SIMULATION LOCALE (aucun Supabase).
+     Comptes en dur. Le PIN n'est pas une vraie sécurité ici :
+     c'est pour valider le PARCOURS. Supabase rendra tout réel ensuite.
+     =========================================================== */
+  const ecranConnexion = document.getElementById('connexion');
+
+  /* Comptes de démo (créés "par le club"). pin = null -> 1re connexion */
+  let comptesDemo = [];  // cache des membres, rempli depuis Supabase au démarrage
+
+  /* Convertit une ligne "membres" Supabase en objet compte de l'app */
+  function ligneVersMembre(row) {
+    return {
+      id: row.id,                 // uuid, nécessaire pour les inscriptions
+      identifiant: row.identifiant,
+      prenom: row.prenom,
+      nom: row.nom || "",
+      role: row.role,
+      pin: row.pin,               // null = 1re connexion
+      statut: row.statut,
+      tel: row.tel || "",
+      email: row.email || "",
+    };
+  }
+
+  /* Charge tous les membres depuis Supabase dans le cache */
+  async function chargerMembres() {
+    const { data, error } = await sb.from('membres').select('*');
+    if (error) { console.error('Chargement membres échoué', error); return; }
+    comptesDemo = data.map(ligneVersMembre);
+  }
+
+  /* Mémoire simple : on retient l'identité sur l'appareil si possible */
+  function memLire(cle)   { try { return localStorage.getItem(cle); } catch (e) { return null; } }
+  function memEcrire(cle, val) { try { localStorage.setItem(cle, val); } catch (e) {} }
+  function memEffacer(cle) { try { localStorage.removeItem(cle); } catch (e) {} }
+
+  /* Navigation entre les étapes de connexion */
+  function montrerEtape(nom) {
+    document.querySelectorAll('.cx-etape').forEach(e =>
+      e.classList.toggle('actif', e.dataset.etape === nom));
+  }
+
+  /* Entre dans l'app */
+  function connecter(membre) {
+    MOI = membre.prenom;
+    MON_ID = membre.id || null;
+    ecranConnexion.classList.add('cache');
+    document.getElementById('accueil-bonjour').textContent = `Bonjour ${membre.prenom} 👋`;
+    roleActuel = membre.role || 'benevole';
+
+    // Carte de rôle dans le Profil
+    const roles = {
+      benevole:    { lbl: "Bénévole",             ico: "🙌" },
+      responsable: { lbl: "Responsable de pôle",  ico: "👔" },
+      webmaster:   { lbl: "Webmaster",            ico: "🔧" },
+    };
+    const r = roles[roleActuel] || roles.benevole;
+    document.getElementById('profil-prenom').textContent = `${membre.prenom}${membre.nom ? ' ' + membre.nom : ''}`;
+    document.getElementById('profil-role-lbl').textContent = r.lbl;
+    document.getElementById('profil-role-badge').textContent = r.ico;
+
+    majModeResponsable();
+    afficherBesoins();
+    // Charge les vraies données depuis Supabase (amorce la démo au 1er lancement)
+    (async () => {
+      await amorcerDemoSiVide();
+      await chargerBesoins();
+      await chargerAnnonces();
+    })();
+  }
+
+  /* --- Étape 1 -> 2 --- */
+  document.getElementById('cx-go-connexion').addEventListener('click', () => montrerEtape('identifiant'));
+  document.getElementById('cx-retour-bienvenue').addEventListener('click', () => montrerEtape('bienvenue'));
+
+  /* ===========================================================
+     INSCRIPTION (nouveau membre, validé ensuite par un responsable)
+     =========================================================== */
+  let inscriptionEnCours = null;  // données saisies en attendant le PIN
+  let iPinSaisi = "";
+  let iPinPremier = "";
+  let iPinMode = "creation1";
+
+  document.getElementById('cx-go-inscription').addEventListener('click', () => {
+    document.getElementById('i-prenom').value = '';
+    document.getElementById('i-nom').value = '';
+    document.getElementById('i-id').value = '';
+    document.getElementById('i-tel').value = '';
+    document.getElementById('i-email').value = '';
+    document.getElementById('i-erreur').classList.remove('visible');
+    montrerEtape('inscription');
+  });
+  document.getElementById('i-retour').addEventListener('click', () => montrerEtape('bienvenue'));
+
+  document.getElementById('i-continuer').addEventListener('click', () => {
+    const prenom = document.getElementById('i-prenom').value.trim();
+    const nom    = document.getElementById('i-nom').value.trim();
+    const id     = document.getElementById('i-id').value.trim().toLowerCase();
+    const tel    = document.getElementById('i-tel').value.trim();
+    const email  = document.getElementById('i-email').value.trim();
+    const err = document.getElementById('i-erreur');
+    err.classList.remove('visible');
+    const stop = (m) => { err.textContent = m; err.classList.add('visible'); };
+
+    if (!prenom || !nom) { stop("Indique ton prénom et ton nom."); return; }
+    if (!id) { stop("Choisis un identifiant."); return; }
+    if (comptesDemo.some(c => c.identifiant === id)) { stop("Cet identifiant est déjà pris, choisis-en un autre."); return; }
+    if (!tel && !email) { stop("Indique au moins un téléphone ou un email."); return; }
+
+    inscriptionEnCours = { prenom, nom, identifiant: id, tel, email };
+    iPinSaisi = ""; iPinPremier = ""; iPinMode = "creation1";
+    majIPin();
+    document.getElementById('i-pin-consigne').textContent = "4 chiffres, pour te connecter facilement";
+    montrerEtape('inscription-pin');
+  });
+
+  /* Pavé PIN de l'inscription */
+  function majIPin() {
+    const pts = document.getElementById('i-pin-points');
+    pts.classList.remove('erreur');
+    pts.querySelectorAll('.pin-point').forEach((p, i) => p.classList.toggle('plein', i < iPinSaisi.length));
+  }
+  function iErreurPin(msg) {
+    const err = document.getElementById('i-pin-erreur');
+    err.textContent = msg; err.classList.add('visible');
+    document.getElementById('i-pin-points').classList.add('erreur');
+    setTimeout(() => { iPinSaisi = ""; majIPin(); err.classList.remove('visible'); }, 700);
+  }
+  document.querySelectorAll('.i-pave').forEach(t =>
+    t.addEventListener('click', () => {
+      if (t.dataset.action === "suppr") { iPinSaisi = iPinSaisi.slice(0, -1); majIPin(); return; }
+      if (iPinSaisi.length >= 4) return;
+      iPinSaisi += t.dataset.chiffre;
+      majIPin();
+      if (iPinSaisi.length === 4) setTimeout(validerIPin, 150);
+    })
+  );
+  function validerIPin() {
+    if (iPinMode === "creation1") {
+      iPinPremier = iPinSaisi;
+      iPinSaisi = ""; majIPin();
+      iPinMode = "creation2";
+      document.getElementById('i-pin-consigne').textContent = "Confirme ton code PIN";
+    } else {
+      if (iPinSaisi === iPinPremier) {
+        // Crée le compte en attente de validation, dans Supabase
+        const nouveau = {
+          identifiant: inscriptionEnCours.identifiant,
+          prenom: inscriptionEnCours.prenom,
+          nom: inscriptionEnCours.nom,
+          role: "benevole",
+          pin: iPinPremier,
+          statut: "attente",
+          tel: inscriptionEnCours.tel,
+          email: inscriptionEnCours.email
+        };
+        comptesDemo.push(nouveau);           // cache local
+        sb.from('membres').insert({          // base
+          identifiant: nouveau.identifiant, prenom: nouveau.prenom, nom: nouveau.nom,
+          role: nouveau.role, statut: nouveau.statut, pin: nouveau.pin,
+          tel: nouveau.tel, email: nouveau.email
+        }).then(({ error }) => { if (error) { console.error('Insertion membre échouée', error); montrerToast("Erreur : compte non enregistré."); } });
+        montrerEtape('inscription-fin');
+      } else {
+        iErreurPin("Les deux codes ne correspondent pas.");
+        iPinMode = "creation1";
+        document.getElementById('i-pin-consigne').textContent = "Choisis ton code PIN";
+      }
+    }
+  }
+  document.getElementById('i-fin-ok').addEventListener('click', () => montrerEtape('bienvenue'));
+
+  /* --- Étape 2 : valider l'identifiant --- */
+  let membreEnCours = null;     // le compte trouvé
+  let modePin = "saisie";       // "saisie" (PIN existant) | "creation1" | "creation2"
+  let premierPin = "";          // mémorise le 1er PIN lors de la création
+
+  document.getElementById('cx-valider-id').addEventListener('click', () => {
+    const identifiant = document.getElementById('cx-id').value.trim().toLowerCase();
+    const err = document.getElementById('cx-erreur-id');
+    err.classList.remove('visible');
+    if (!identifiant) { err.textContent = "Indique ton identifiant 🙂"; err.classList.add('visible'); return; }
+
+    const membre = comptesDemo.find(c => c.identifiant === identifiant);
+    if (!membre) {
+      err.textContent = "Identifiant inconnu. Crée un compte ou vérifie ta saisie.";
+      err.classList.add('visible');
+      return;
+    }
+    if (membre.statut === "attente") {
+      err.textContent = "Ton compte n'est pas encore validé par un responsable.";
+      err.classList.add('visible');
+      return;
+    }
+    if (membre.statut === "refuse") {
+      err.textContent = "Ton inscription n'a pas été acceptée. Contacte le club.";
+      err.classList.add('visible');
+      return;
+    }
+    allerAuPin(membre);
+  });
+
+  /* Va à l'écran PIN pour un compte donné (prénom affiché dans la consigne) */
+  function allerAuPin(membre) {
+    membreEnCours = membre;
+    pinSaisi = "";
+    document.getElementById('cx-erreur-pin').classList.remove('visible');
+    majPoints();
+    if (membre.pin === null) {
+      modePin = "creation1";
+      document.getElementById('cx-pin-consigne').textContent = `Bonjour ${membre.prenom}, choisis ton code PIN`;
+    } else {
+      modePin = "saisie";
+      document.getElementById('cx-pin-consigne').textContent = `Bonjour ${membre.prenom}, entre ton code PIN`;
+    }
+    montrerEtape('pin');
+  }
+  document.getElementById('cx-retour-id').addEventListener('click', () => {
+    memEffacer('assopilot_dernier_id');   // on oublie le compte mémorisé
+    membreEnCours = null;
+    pinSaisi = ""; majPoints();
+    document.getElementById('cx-id').value = '';
+    montrerEtape('identifiant');
+  });
+
+  /* --- Étape 3 : le pavé PIN --- */
+  let pinSaisi = "";
+  const ptsPin = document.getElementById('pin-points');
+
+  function majPoints() {
+    ptsPin.classList.remove('erreur');
+    ptsPin.querySelectorAll('.pin-point').forEach((p, i) =>
+      p.classList.toggle('plein', i < pinSaisi.length));
+  }
+
+  function erreurPin(msg) {
+    const err = document.getElementById('cx-erreur-pin');
+    err.textContent = msg; err.classList.add('visible');
+    ptsPin.classList.add('erreur');
+    setTimeout(() => { pinSaisi = ""; majPoints(); err.classList.remove('visible'); }, 700);
+  }
+
+  function validerPinComplet() {
+    if (modePin === "saisie") {
+      if (pinSaisi === membreEnCours.pin) {
+        finConnexion();
+      } else {
+        erreurPin("Code PIN incorrect.");
+      }
+    } else if (modePin === "creation1") {
+      premierPin = pinSaisi;
+      pinSaisi = ""; majPoints();
+      modePin = "creation2";
+      document.getElementById('cx-pin-consigne').textContent = "Confirme ton code PIN";
+    } else if (modePin === "creation2") {
+      if (pinSaisi === premierPin) {
+        membreEnCours.pin = premierPin;
+        // Enregistre le PIN dans Supabase (persistant)
+        sb.from('membres').update({ pin: premierPin }).eq('identifiant', membreEnCours.identifiant)
+          .then(({ error }) => { if (error) console.error('MAJ pin échouée', error); });
+        // 1re connexion : on enregistre la session puis on lance le questionnaire d'accueil
+        memEcrire('assopilot_session', '1');
+        memEcrire('assopilot_dernier_id', membreEnCours.identifiant);
+        document.getElementById('cx-id').value = '';
+        pinSaisi = ""; majPoints();
+        lancerQuestionnaire();
+      } else {
+        erreurPin("Les deux codes ne correspondent pas.");
+        modePin = "creation1";
+        document.getElementById('cx-pin-consigne').textContent = "Choisis ton code PIN (4 chiffres)";
+      }
+    }
+  }
+
+  function finConnexion() {
+    memEcrire('assopilot_session', '1');                       // session active : entre direct
+    memEcrire('assopilot_dernier_id', membreEnCours.identifiant); // dernier compte connu (pour pré-remplir le PIN)
+    document.getElementById('cx-id').value = '';
+    pinSaisi = ""; majPoints();
+    montrerEtape('bienvenue'); // remet à zéro pour la prochaine fois
+    connecter(membreEnCours);
+  }
+
+  /* ===========================================================
+     QUESTIONNAIRE "TROUVER MA PLACE" (logique)
+     =========================================================== */
+  function lancerQuestionnaire() {
+    qChoixMissions = new Set();
+    qChoixFreq = null;
+    document.getElementById('q-intro-bonjour').textContent = `Bienvenue ${membreEnCours.prenom} ! 👋`;
+    montrerEtape('q-intro');
+  }
+
+  // Choix "Oui je sais" → on entre directement
+  document.getElementById('q-oui').addEventListener('click', () => {
+    montrerEtape('bienvenue');
+    connecter(membreEnCours);
+  });
+
+  // Choix "Aide-moi" → on remplit Q1 et on l'affiche
+  document.getElementById('q-aide').addEventListener('click', () => {
+    const zone = document.getElementById('q1-familles');
+    zone.innerHTML = qFamilles.map(fam => `
+      <div class="q-famille">${fam.titre}</div>
+      ${fam.options.map(o => `
+        <div class="q-option" data-mission="${o.id}" onclick="basculerMission('${o.id}')">
+          <span class="q-ico">${o.ico}</span>
+          <span class="q-lbl">${o.lbl}</span>
+          <span class="q-check">✓</span>
+        </div>`).join('')}
+    `).join('');
+    montrerEtape('q1');
+  });
+
+  function basculerMission(id) {
+    const el = document.querySelector(`.q-option[data-mission="${id}"]`);
+    if (qChoixMissions.has(id)) { qChoixMissions.delete(id); el.classList.remove('coche'); }
+    else { qChoixMissions.add(id); el.classList.add('coche'); }
+  }
+
+  // Q1 → Q2
+  document.getElementById('q1-suivant').addEventListener('click', () => {
+    if (qChoixMissions.size === 0) { montrerToast("Choisis au moins une chose qui te plaît 🙂"); return; }
+    const zone = document.getElementById('q2-freqs');
+    zone.innerHTML = qFrequences.map(f => `
+      <div class="q-freq" data-freq="${f.id}" onclick="choisirFreq('${f.id}')">
+        <span class="q-ico">${f.ico}</span>
+        <span class="q-freq-txt"><strong>${f.titre}</strong><span>${f.sous}</span></span>
+      </div>`).join('');
+    montrerEtape('q2');
+  });
+  document.getElementById('q2-retour').addEventListener('click', () => montrerEtape('q1'));
+
+  function choisirFreq(id) {
+    qChoixFreq = id;
+    document.querySelectorAll('.q-freq').forEach(f =>
+      f.classList.toggle('coche', f.dataset.freq === id));
+    // Sélection = on enchaîne sur les suggestions après un court instant
+    setTimeout(montrerSuggestions, 250);
+  }
+
+  function montrerSuggestions() {
+    // Récupère les missions choisies avec leur description
+    const toutes = qFamilles.flatMap(f => f.options);
+    const choisies = toutes.filter(o => qChoixMissions.has(o.id));
+    const zone = document.getElementById('q-suggestions');
+    zone.innerHTML = choisies.map(o => `
+      <div class="q-sugg">
+        <div class="q-sugg-haut">
+          <span class="q-ico">${o.ico}</span>
+          <span class="q-sugg-nom">${o.lbl}</span>
+        </div>
+        <div class="q-sugg-desc">${o.desc}</div>
+      </div>`).join('');
+    montrerEtape('q-fin');
+  }
+
+  // Terminer le questionnaire → entrer dans l'app
+  document.getElementById('q-terminer').addEventListener('click', () => {
+    montrerToast("Bienvenue dans le club ! 💙");
+    montrerEtape('bienvenue');
+    connecter(membreEnCours);
+  });
+
+  // Clic sur les touches du pavé
+  document.querySelectorAll('.pave-touche').forEach(t =>
+    t.addEventListener('click', () => {
+      if (t.dataset.action === "suppr") {
+        pinSaisi = pinSaisi.slice(0, -1);
+        majPoints();
+        return;
+      }
+      if (pinSaisi.length >= 4) return;
+      pinSaisi += t.dataset.chiffre;
+      majPoints();
+      if (pinSaisi.length === 4) setTimeout(validerPinComplet, 150);
+    })
+  );
+
+  // Entrée clavier sur le champ identifiant
+  document.getElementById('cx-id').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('cx-valider-id').click();
+  });
+
+  // Se déconnecter : on ferme la session mais on garde l'identifiant mémorisé
+  document.getElementById('btn-deco').addEventListener('click', () => {
+    memEffacer('assopilot_session');
+    MOI = "";
+    ecranConnexion.classList.remove('cache');
+    afficher('accueil');
+
+    // Si on connaît encore le compte, on va direct au PIN pré-rempli ; sinon écran de bienvenue
+    const dernierId = memLire('assopilot_dernier_id');
+    const m = dernierId ? comptesDemo.find(c => c.identifiant === dernierId) : null;
+    if (m) { allerAuPin(m); }
+    else { montrerEtape('bienvenue'); }
+  });
+
+  /* Démarrage */
+  rafraichirMenuEvenements();
+  afficherOngletEvenements();
+  majModeResponsable();
+
+  // On charge d'abord les membres depuis Supabase, PUIS on décide de l'écran
+  (async () => {
+    await chargerMembres();
+
+    const session = memLire('assopilot_session');
+    const dernierId = memLire('assopilot_dernier_id');
+    const compteConnu = dernierId ? comptesDemo.find(c => c.identifiant === dernierId) : null;
+
+    if (session && compteConnu) {
+      // 1) Session active : on entre directement dans l'app
+      connecter(compteConnu);
+    } else if (compteConnu) {
+      // 2) Compte connu mais déconnecté : direct à l'écran PIN pré-rempli
+      afficherBesoins();
+      allerAuPin(compteConnu);
+    } else {
+      // 3) Personne de connu : écran de bienvenue
+      afficherBesoins();
+      montrerEtape('bienvenue');
+    }
+  })();
+</script>
+</body>
+</html>
