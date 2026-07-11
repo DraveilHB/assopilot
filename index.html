@@ -1625,12 +1625,36 @@
               </select>
             </div>
             <div class="cx-erreur" id="a-erreur"></div>
+            <div class="cx-champ">
+              <label for="a-pole">Pôle de rattachement</label>
+              <select id="a-pole"><option value="">— aucun —</option></select>
+            </div>
+            <div class="cx-champ">
+              <label for="a-fonction">Fonction (facultatif)</label>
+              <input id="a-fonction" type="text" placeholder="Ex : Trésorière adjointe" />
+            </div>
+            <div class="cx-erreur" id="a-erreur"></div>
             <button class="btn-publier" id="a-creer">Créer le compte</button>
             <button class="cx-lien" id="a-annuler">Annuler</button>
             <p class="sous-titre" style="font-size:12px; margin-top:6px;">La personne choisira son code PIN à sa première connexion.</p>
           </div>
 
           <div id="liste-membres"><!-- rempli par JS --></div>
+
+          <div class="section-titre" style="margin-top:18px;">Gestion des pôles</div>
+          <div id="liste-poles" style="margin-bottom:10px;"><!-- rempli par JS --></div>
+          <div class="duo" style="display:flex; gap:6px; align-items:flex-end;">
+            <div class="cx-champ" style="flex:1 1 30%;">
+              <label for="p-code">Code</label>
+              <input id="p-code" type="text" placeholder="sponsors" autocapitalize="none" />
+            </div>
+            <div class="cx-champ" style="flex:1 1 50%;">
+              <label for="p-libelle">Libellé</label>
+              <input id="p-libelle" type="text" placeholder="Pôle sponsors" />
+            </div>
+            <button class="btn-publier" id="p-ajouter" style="flex:0 0 auto; padding:10px 14px;">＋ Ajouter</button>
+          </div>
+          <p class="sous-titre" style="font-size:12px; margin-top:6px;">Le code est un identifiant court en minuscules (ex : <em>sponsors</em>). Le libellé est ce qui s'affiche.</p>
         </div>
 
         <button class="btn-deco" id="btn-deco">Se déconnecter</button>
@@ -1726,12 +1750,7 @@
 
         <div class="champ">
           <label for="f-pole">Pôle</label>
-          <select id="f-pole">
-            <option value="sportif">Sportif</option>
-            <option value="evenementiel">Événementiel</option>
-            <option value="com">Communication</option>
-            <option value="admin">Financier / Administratif</option>
-          </select>
+          <select id="f-pole"><!-- rempli dynamiquement --></select>
         </div>
 
         <div class="champ">
@@ -1857,8 +1876,43 @@
 <script>
   /* ===========================================================
      ASSOPILOT — connecté à Supabase (base de données réelle).
-     Les besoins sont lus/écrits dans Supabase ; le reste (événements,
-     membres) est en cours de migration.
+     -----------------------------------------------------------
+     ⚠️ SQL à exécuter dans Supabase (SQL Editor) pour activer
+     TOUTES les fonctionnalités (visibilité ciblée, pôles
+     dynamiques, identifiant personnalisé, fonction, etc.) :
+
+       -- 1) Colonnes utilisées par le code JS (si absentes)
+       alter table membres    add column if not exists pole text;
+       alter table membres    add column if not exists fonction text;
+       alter table membres    add column if not exists identifiant_perso boolean default false;
+       alter table besoins    add column if not exists pole text;
+       alter table besoins    add column if not exists visibilite text default 'tous';
+       alter table besoins    add column if not exists visibilite_cible jsonb;
+       alter table evenements add column if not exists pole text;
+       alter table evenements add column if not exists visibilite text default 'tous';
+       alter table evenements add column if not exists visibilite_cible jsonb;
+
+       -- 2) Table des pôles dynamiques (gérée depuis l'admin)
+       create table if not exists poles (
+         code    text primary key,
+         libelle text not null,
+         ordre   int  default 100
+       );
+       -- Seed des 4 pôles par défaut (idempotent)
+       insert into poles (code, libelle, ordre) values
+         ('sportif',      'Sportif',                    10),
+         ('evenementiel', 'Événementiel',               20),
+         ('com',          'Communication',              30),
+         ('admin',        'Financier / Administratif',  40)
+       on conflict (code) do nothing;
+       alter table poles enable row level security;
+       drop policy if exists "poles lecture" on poles;
+       create policy "poles lecture" on poles for select using (true);
+       drop policy if exists "poles ecriture" on poles;
+       create policy "poles ecriture" on poles for all using (true) with check (true);
+
+     Tant que le SQL n'est pas passé, l'app tourne avec les
+     4 pôles par défaut (fallback local).
      =========================================================== */
 
   /* --- Connexion Supabase --- */
@@ -1876,11 +1930,153 @@
   /* Identité de l'utilisateur connecté (rempli à la connexion) */
   let MOI = "";          // prénom affiché
   let MON_ID = null;     // uuid du membre connecté (pour les inscriptions Supabase)
+  let MON_IDENTIFIANT = "";  // identifiant courant (pour éditer)
+  let MON_POLE = null;   // pôle de rattachement du membre (sportif|evenementiel|com|admin|null)
+  let MA_FONCTION = "";  // fonction textuelle (ex : "Trésorière adjointe")
+  let MON_ID_PERSO = false; // identifiant déjà personnalisé ?
   let roleActuel = "benevole";   // rôle du compte connecté : benevole | responsable | webmaster
 
-  /* Helpers de droits — un seul endroit pour décider qui peut quoi */
-  function peutGerer()   { return roleActuel === 'responsable' || roleActuel === 'webmaster'; } // besoins, événements, valider membres
-  function estWebmaster(){ return roleActuel === 'webmaster'; }                                  // administration, rôles
+  /* Table des droits par fonction. `poles` = 'tous' ou un tableau de codes de pôles.
+     La correspondance se fait par expression régulière sur le champ `fonction`. */
+  let TOUS_POLES = ['sportif','evenementiel','com','admin'];
+  const DROITS_PAR_FONCTION = [
+    { match: /webmaster/i,                                       poles: 'tous' },
+    { match: /pr[ée]sident(?!.*vice)/i,                          poles: 'tous' },
+    { match: /vice.?pr[ée]sident/i,                              poles: 'tous' },
+    { match: /directeur.*sport|adjoint.*directeur.*sport/i,       poles: ['sportif'] },
+    { match: /secr[ée]taire/i,                                   poles: ['admin','evenementiel','sportif'] },
+    { match: /tr[ée]sori/i,                                      poles: ['admin'] },
+    { match: /[ée]v[ée]nementiel|buvette/i,                      poles: ['evenementiel'] },
+    { match: /communication/i,                                   poles: ['com'] },
+    { match: /sponsors|arbitrage|mat[ée]riel|officiels|comit[ée]|coq/i, poles: ['sportif'] },
+  ];
+  function droitsSelonFonction(fonction) {
+    if (!fonction) return null;
+    for (const r of DROITS_PAR_FONCTION) if (r.match.test(fonction)) return r.poles;
+    return null;
+  }
+  function polesGeres() {
+    if (estWebmaster()) return TOUS_POLES.slice();
+    const dr = droitsSelonFonction(MA_FONCTION);
+    if (dr === 'tous') return TOUS_POLES.slice();
+    if (Array.isArray(dr)) return dr.slice();
+    // Fallback compat : ancien "responsable" sans fonction connue → tous les pôles
+    if (roleActuel === 'responsable') return TOUS_POLES.slice();
+    return [];
+  }
+  function peutGererPole(pole) {
+    const g = polesGeres();
+    if (!pole) return g.length > 0;
+    return g.includes(pole);
+  }
+  function peutGerer()    { return polesGeres().length > 0; }
+  function estWebmaster() { return roleActuel === 'webmaster'; }
+  function estGestionnaireGlobal() {
+    if (estWebmaster()) return true;
+    const dr = droitsSelonFonction(MA_FONCTION);
+    return dr === 'tous';
+  }
+
+  /* Un item (besoin/événement) est-il visible pour l'utilisateur courant ? */
+  function estVisiblePourMoi(item) {
+    if (!item) return true;
+    if (peutGererPole(item.pole)) return true; // les gestionnaires du pôle voient tout
+    const vis = item.visibilite || 'tous';
+    if (vis === 'tous') return true;
+    const cible = item.visibiliteCible;
+    if (vis === 'pole')    return !!MON_POLE && cible === MON_POLE;
+    if (vis === 'membres') return Array.isArray(cible) && !!MON_ID && cible.includes(MON_ID);
+    return true;
+  }
+  let LABELS_POLE = { sportif:'Sportif', evenementiel:'Événementiel', com:'Communication', admin:'Financier / Administratif' };
+
+  /* ------- Pôles dynamiques (table `poles` en base) ------- */
+  /* Responsables et adjoints des pôles : { code: { responsable_id, adjoint_id } } */
+  let RESP_POLE = {};
+
+  async function chargerPoles() {
+    try {
+      const { data, error } = await sb.from('poles').select('code,libelle,ordre,responsable_id,adjoint_id').order('ordre', { ascending: true });
+      if (error) throw error;
+      if (Array.isArray(data) && data.length) {
+        TOUS_POLES = data.map(p => p.code);
+        LABELS_POLE = {};
+        RESP_POLE = {};
+        data.forEach(p => {
+          LABELS_POLE[p.code] = p.libelle;
+          RESP_POLE[p.code] = { responsable_id: p.responsable_id || null, adjoint_id: p.adjoint_id || null };
+        });
+      }
+    } catch (e) {
+      console.warn('Table `poles` indisponible, fallback sur les 4 pôles par défaut.', e?.message || e);
+    }
+  }
+
+  /* Assigne un responsable ou un adjoint à un pôle (webmasters) */
+  async function assignerPole(code, champ, membreId) {
+    const maj = {};
+    maj[champ] = membreId || null;
+    const { error } = await sb.from('poles').update(maj).eq('code', code);
+    if (error) { console.error('Assignation échouée', error); montrerToast("Erreur, réessaie."); return false; }
+    await chargerPoles();
+    afficherPolesAdmin();
+    montrerToast("Pôle mis à jour ✅");
+    return true;
+  }
+  async function ajouterPole(code, libelle) {
+    code = (code || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 30);
+    libelle = (libelle || '').trim().slice(0, 60);
+    if (!code || !libelle) { montrerToast("Code et libellé requis."); return false; }
+    if (TOUS_POLES.includes(code)) { montrerToast("Ce code de pôle existe déjà."); return false; }
+    const ordre = (TOUS_POLES.length + 1) * 10;
+    const { error } = await sb.from('poles').insert({ code, libelle, ordre });
+    if (error) { console.error(error); montrerToast("Erreur : "+ error.message); return false; }
+    TOUS_POLES.push(code); LABELS_POLE[code] = libelle;
+    return true;
+  }
+  async function renommerPole(code, nouveauLibelle) {
+    nouveauLibelle = (nouveauLibelle || '').trim().slice(0, 60);
+    if (!nouveauLibelle) return false;
+    const { error } = await sb.from('poles').update({ libelle: nouveauLibelle }).eq('code', code);
+    if (error) { console.error(error); montrerToast("Erreur : "+ error.message); return false; }
+    LABELS_POLE[code] = nouveauLibelle;
+    return true;
+  }
+  async function supprimerPole(code) {
+    const { error } = await sb.from('poles').delete().eq('code', code);
+    if (error) { console.error(error); montrerToast("Erreur : "+ error.message); return false; }
+    TOUS_POLES = TOUS_POLES.filter(p => p !== code);
+    delete LABELS_POLE[code];
+    return true;
+  }
+  /* Repopule tous les <select> qui listent les pôles */
+  function remplirTousLesSelectsDePoles() {
+    const opts = TOUS_POLES.map(p => `<option value="${p}">${LABELS_POLE[p] || p}</option>`).join('');
+    ['f-pole','fe-pole','v-cible-pole','ve-cible-pole'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      const val = sel.value;
+      sel.innerHTML = opts;
+      if (TOUS_POLES.includes(val)) sel.value = val;
+    });
+    // formulaires création compte + gestion membres : régénérés à l'affichage
+    if (document.getElementById('a-pole')) {
+      const sel = document.getElementById('a-pole');
+      const val = sel.value;
+      sel.innerHTML = `<option value="">— aucun —</option>` + opts;
+      sel.value = TOUS_POLES.includes(val) ? val : '';
+    }
+  }
+
+  /* Normalise le champ "visibilite_cible" reçu de Supabase (jsonb) */
+  function normCible(v) {
+    if (v === null || v === undefined) return null;
+    if (typeof v === 'string') {
+      // pourrait être un JSON stringifié
+      try { const p = JSON.parse(v); return p; } catch(e) { return v; }
+    }
+    return v;
+  }
 
   /* ===========================================================
      SUPABASE — Lecture des besoins (Temps 1)
@@ -1905,6 +2101,8 @@
       cloture: row.cloture,
       responsableId: row.responsable_id || null,
       responsable: resp ? { prenom: resp.prenom, nom: resp.nom, tel: resp.tel, email: resp.email } : null,
+      visibilite: row.visibilite || 'tous',
+      visibiliteCible: normCible(row.visibilite_cible),
       qui: noms,                                          // prénoms des inscrits
       jeParticipe: inscrits.some(i => i.membre_id === MON_ID),  // suis-je inscrit ? (par id)
     };
@@ -1966,6 +2164,9 @@
       type: row.type || null,
       dateISO: row.date_iso,
       heure: row.heure || "",
+      pole: row.pole || null,
+      visibilite: row.visibilite || 'tous',
+      visibiliteCible: normCible(row.visibilite_cible),
       quand: i + 1,
     };
   }
@@ -2070,8 +2271,7 @@
      =========================================================== */
   /* Menu ⋯ (modifier/supprimer) — visible seulement en mode responsable */
   function menuActions(b) {
-    const estResp = peutGerer();
-    if (!estResp) return '';
+    if (!peutGererPole(b.pole)) return '';
     const ligneCloture = b.cloture
       ? `<button onclick="rouvrirBesoin('${b.id}')">🔓 Rouvrir</button>`
       : `<button onclick="cloturerBesoin('${b.id}')">✅ Clôturer</button>`;
@@ -2256,8 +2456,8 @@
 
     // --- Section ÉVÉNEMENTS ---
     // 1) Pour chaque événement, on calcule son urgence dominante (coup de main le plus urgent NON pourvu)
-    const cartes = evenements.map(ev => {
-      const liste = besoins.filter(b => b.event === ev.id && passeFiltre(b));
+    const cartes = evenements.filter(estVisiblePourMoi).map(ev => {
+      const liste = besoins.filter(b => b.event === ev.id && passeFiltre(b) && estVisiblePourMoi(b));
       const ouverts = liste.filter(b => !b.cloture && b.qui.length < b.cherche);
       const restes = liste.reduce((s, b) => s + (b.cloture ? 0 : Math.max(0, b.cherche - b.qui.length)), 0);
       // rang le plus urgent parmi les non pourvus (0 = urgent). Si tout pourvu -> ok
@@ -2293,7 +2493,7 @@
     }).join('') || `<div class="vide"><div class="icone">📅</div><p>Aucun événement à venir.</p></div>`;
 
     // --- Section COUPS DE MAIN LIBRES (sans événement) ---
-    const libres = besoins.filter(b => !b.event && passeFiltre(b)).sort((a, b) => {
+    const libres = besoins.filter(b => !b.event && passeFiltre(b) && estVisiblePourMoi(b)).sort((a, b) => {
       const aC = a.qui.length >= a.cherche, bC = b.qui.length >= b.cherche;
       if (aC !== bC) return aC ? 1 : -1;
       return urgences[urgenceDe(a)].rang - urgences[urgenceDe(b)].rang || b.importance - a.importance;
@@ -2552,6 +2752,8 @@
   function ouvrirPanneau() {
     fermerTout();
     rafraichirMenuResponsables();
+    rafraichirSelectPole('f-pole');
+    remplirCiblesMembres('besoin');
     voile.classList.add('ouvert');
     panneau.classList.add('ouvert');
   }
@@ -2566,6 +2768,7 @@
   /* Panneau création d'événement */
   function ouvrirPanneauEvent() {
     fermerTout();
+    remplirCiblesMembres('event');
     resetFormEvent();
     voile.classList.add('ouvert');
     panneauEvent.classList.add('ouvert');
@@ -2719,6 +2922,120 @@
     document.getElementById('fe-nom').value = '';
     document.getElementById('fe-date').value = '';
     document.getElementById('fe-heure').value = '';
+    rafraichirSelectPole('fe-pole');
+    resetBlocVisibilite('event');
+  }
+
+  /* Adapte le select de pôle aux droits (ex : le trésorier ne voit que "admin") */
+  function rafraichirSelectPole(idSelect) {
+    const sel = document.getElementById(idSelect);
+    if (!sel) return;
+    const dispo = polesGeres();
+    const actuel = sel.value;
+    sel.innerHTML = dispo.map(p => `<option value="${p}">${LABELS_POLE[p]}</option>`).join('');
+    if (dispo.includes(actuel)) sel.value = actuel;
+  }
+
+  /* Réinitialise le bloc "Qui peut voir ?" (kind = 'besoin' ou 'event') */
+  function resetBlocVisibilite(kind) {
+    const prefix = kind === 'event' ? 've' : 'v';
+    const mode = document.getElementById(`${prefix}-mode`);
+    if (!mode) return;
+    mode.value = 'tous';
+    document.getElementById(`${prefix}-cible-pole`).value = polesGeres()[0] || 'sportif';
+    const single = document.getElementById(`${prefix}-cible-membre`);
+    if (single) single.value = '';
+    document.querySelectorAll(`#${prefix}-cible-membres input[type=checkbox]`).forEach(c => c.checked = false);
+    majAffichageVisibilite(kind);
+  }
+
+  /* Affiche le bon sous-bloc selon le mode choisi */
+  function majAffichageVisibilite(kind) {
+    const prefix = kind === 'event' ? 've' : 'v';
+    const mode = document.getElementById(`${prefix}-mode`).value;
+    document.getElementById(`${prefix}-cible-pole-wrap`).style.display   = (mode === 'pole')    ? '' : 'none';
+    document.getElementById(`${prefix}-cible-membre-wrap`).style.display = (mode === 'membre')  ? '' : 'none';
+    document.getElementById(`${prefix}-cible-membres-wrap`).style.display= (mode === 'membres') ? '' : 'none';
+  }
+
+  /* Remplit les listes de membres (cibles précises) pour un formulaire */
+  function remplirCiblesMembres(kind) {
+    const prefix = kind === 'event' ? 've' : 'v';
+    const valides = comptesDemo.filter(c => c.statut === 'valide');
+    // select "une personne"
+    const sel = document.getElementById(`${prefix}-cible-membre`);
+    if (sel) {
+      const actuel = sel.value;
+      sel.innerHTML = '<option value="">— choisir —</option>' + valides.map(m =>
+        `<option value="${m.id}">${m.prenom}${m.nom ? ' ' + m.nom : ''}</option>`).join('');
+      sel.value = actuel;
+    }
+    // checkbox list "plusieurs personnes"
+    const box = document.getElementById(`${prefix}-cible-membres`);
+    if (box) {
+      const cochesActuels = new Set(
+        [...box.querySelectorAll('input[type=checkbox]:checked')].map(c => c.value)
+      );
+      box.innerHTML = valides.map(m => `
+        <label class="cible-item">
+          <input type="checkbox" value="${m.id}" ${cochesActuels.has(m.id) ? 'checked' : ''}/>
+          <span>${m.prenom}${m.nom ? ' ' + m.nom : ''}</span>
+        </label>`).join('') || '<div class="sous-titre" style="font-size:13px;">Aucun membre.</div>';
+    }
+    // options du select pôle
+    const selPole = document.getElementById(`${prefix}-cible-pole`);
+    if (selPole) {
+      selPole.innerHTML = TOUS_POLES.map(p => `<option value="${p}">${LABELS_POLE[p]}</option>`).join('');
+    }
+  }
+
+  /* Lit les valeurs du bloc visibilité et renvoie {visibilite, cible} */
+  function lireVisibilite(kind) {
+    const prefix = kind === 'event' ? 've' : 'v';
+    const modeEl = document.getElementById(`${prefix}-mode`);
+    if (!modeEl) return { visibilite: 'tous', cible: null };
+    const mode = modeEl.value;
+    if (mode === 'pole') {
+      const p = document.getElementById(`${prefix}-cible-pole`).value;
+      return { visibilite: 'pole', cible: p };
+    }
+    if (mode === 'membre') {
+      const id = document.getElementById(`${prefix}-cible-membre`).value;
+      if (!id) return { erreur: "Choisis un membre." };
+      return { visibilite: 'membres', cible: [id] };
+    }
+    if (mode === 'membres') {
+      const ids = [...document.querySelectorAll(`#${prefix}-cible-membres input[type=checkbox]:checked`)].map(c => c.value);
+      if (!ids.length) return { erreur: "Coche au moins un membre." };
+      return { visibilite: 'membres', cible: ids };
+    }
+    return { visibilite: 'tous', cible: null };
+  }
+
+  /* Pré-remplit le bloc à partir d'un item existant (édition) */
+  function preremplirVisibilite(kind, item) {
+    const prefix = kind === 'event' ? 've' : 'v';
+    const modeEl = document.getElementById(`${prefix}-mode`);
+    if (!modeEl) return;
+    const vis = item.visibilite || 'tous';
+    const cible = item.visibiliteCible;
+    if (vis === 'pole') {
+      modeEl.value = 'pole';
+      document.getElementById(`${prefix}-cible-pole`).value = cible || (polesGeres()[0] || 'sportif');
+    } else if (vis === 'membres' && Array.isArray(cible)) {
+      if (cible.length === 1) {
+        modeEl.value = 'membre';
+        document.getElementById(`${prefix}-cible-membre`).value = cible[0];
+      } else {
+        modeEl.value = 'membres';
+        document.querySelectorAll(`#${prefix}-cible-membres input[type=checkbox]`).forEach(c => {
+          c.checked = cible.includes(c.value);
+        });
+      }
+    } else {
+      modeEl.value = 'tous';
+    }
+    majAffichageVisibilite(kind);
   }
 
   /* Remplit le menu "événement" du formulaire besoin */
@@ -2751,26 +3068,28 @@
   /* Affiche la liste des événements dans l'onglet Événements */
   function afficherOngletEvenements() {
     const zone = document.getElementById('liste-events-onglet');
-    if (!evenements.length) {
+    const visibles = evenements.filter(estVisiblePourMoi);
+    if (!visibles.length) {
       zone.innerHTML = `<div class="vide"><div class="icone">📅</div><p>Aucun événement pour l'instant.</p></div>`;
       return;
     }
-    const tri = [...evenements].sort((a, b) => (a.dateISO || '').localeCompare(b.dateISO || ''));
+    const tri = [...visibles].sort((a, b) => (a.dateISO || '').localeCompare(b.dateISO || ''));
     zone.innerHTML = tri.map(ev => {
-      const nb = besoins.filter(b => b.event === ev.id).length;
+      const nb = besoins.filter(b => b.event === ev.id && estVisiblePourMoi(b)).length;
       const d = ev.dateISO ? new Date(ev.dateISO + "T00:00:00")
         .toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Date à venir';
       const dCap = d.charAt(0).toUpperCase() + d.slice(1);
       const heure = ev.heure ? ' · ' + ev.heure.replace(':', 'h') : '';
+      const cadenas = (ev.visibilite && ev.visibilite !== 'tous') ? ' 🔒' : '';
       return `
         <div class="event-ligne">
           <span class="ev-emoji">${ev.emoji}</span>
           <div class="ev-info">
-            <div class="ev-nom">${ev.nom}</div>
+            <div class="ev-nom">${ev.nom}${cadenas}</div>
             <div class="ev-date">${dCap}${heure}</div>
           </div>
           <span class="ev-compte">${nb} coup${nb > 1 ? 's' : ''} de main</span>
-          ${peutGerer() ? `<button class="ev-suppr" onclick="supprimerEvenement('${ev.id}')" title="Supprimer l'événement">✕</button>` : ''}
+          ${peutGererPole(ev.pole) ? `<button class="ev-suppr" onclick="supprimerEvenement('${ev.id}')" title="Supprimer l'événement">✕</button>` : ''}
         </div>`;
     }).join('');
   }
@@ -2840,28 +3159,37 @@
     const nom   = document.getElementById('fe-nom').value.trim();
     const dateISO = document.getElementById('fe-date').value;
     const heure = document.getElementById('fe-heure').value;
+    const pole  = (document.getElementById('fe-pole')?.value) || (polesGeres()[0] || 'evenementiel');
 
     if (!nom) { montrerToast("Donne un nom à l'événement 🙂"); return; }
     if (!dateISO) { montrerToast("Choisis une date 🙂"); return; }
+    if (!peutGererPole(pole)) { montrerToast("Tu n'as pas les droits pour créer sur ce pôle."); return; }
+
+    const vis = lireVisibilite('event');
+    if (vis.erreur) { montrerToast(vis.erreur); return; }
 
     const type = typeEventChoisi ? typeEventChoisi.type : null;
     const emoji = typeEventChoisi ? typeEventChoisi.emoji : "📅";
 
     // 1) Crée l'événement dans Supabase et récupère son id
     const { data: evData, error: evErr } = await sb.from('evenements')
-      .insert({ nom, type, emoji, date_iso: dateISO, heure: heure || null })
+      .insert({
+        nom, type, emoji, date_iso: dateISO, heure: heure || null,
+        pole, visibilite: vis.visibilite, visibilite_cible: vis.cible
+      })
       .select().single();
     if (evErr) { console.error('Création événement échouée', evErr); montrerToast("Erreur : événement non créé."); return; }
 
     const evId = evData.id;
 
-    // 2) Crée les besoins types associés, rattachés à cet événement
+    // 2) Crée les besoins types associés — visibilité HÉRITÉE de l'événement
     const modeles = (type && besoinsTypesParEvent[type]) ? besoinsTypesParEvent[type] : [];
     if (modeles.length) {
       const lignes = modeles.map(m => ({
         nom: m.nom, pole: m.pole, date_iso: dateISO, duree: m.duree,
         cherche: m.cherche, urgence_forcee: null, precisions: "",
-        evenement_id: evId
+        evenement_id: evId,
+        visibilite: vis.visibilite, visibilite_cible: vis.cible,
       }));
       const { error: bErr } = await sb.from('besoins').insert(lignes);
       if (bErr) console.error('Création besoins types échouée', bErr);
@@ -2891,27 +3219,34 @@
     const admin = document.getElementById('zone-admin');
     if (admin) {
       admin.style.display = estWebmaster() ? 'block' : 'none';
-      if (estWebmaster()) afficherMembresAdmin();
+      if (estWebmaster()) { afficherMembresAdmin(); afficherPolesAdmin(); remplirTousLesSelectsDePoles(); }
     }
     afficherBesoins(); // les menus ⋯ dépendent du rôle
   }
 
-  /* Liste de tous les membres validés + changement de rôle (webmaster) */
+  /* Liste de tous les membres validés + gestion (webmaster) */
   function afficherMembresAdmin() {
     const zone = document.getElementById('liste-membres');
     const valides = comptesDemo.filter(c => c.statut === 'valide');
     if (!valides.length) { zone.innerHTML = `<p class="sous-titre" style="font-size:13px;">Aucun membre.</p>`; return; }
+    const optPoles = `<option value="">— aucun —</option>` +
+      TOUS_POLES.map(p => `<option value="${p}">${LABELS_POLE[p]}</option>`).join('');
     zone.innerHTML = valides.map(c => `
-      <div class="membre-ligne">
-        <div class="m-info">
-          <div class="m-nom">${c.prenom} ${c.nom || ''}</div>
-          <div class="m-sous">${c.identifiant}</div>
+      <div class="membre-ligne" style="flex-wrap:wrap; gap:6px;">
+        <div class="m-info" style="flex:1 1 100%;">
+          <div class="m-nom">${c.prenom} ${c.nom || ''}${c.fonction ? ` <span style="font-weight:500; color:var(--gris-texte); font-size:12px;">· ${c.fonction}</span>` : ''}</div>
+          <div class="m-sous">${c.identifiant}${c.identifiantPerso ? ' ✎' : ''}</div>
         </div>
-        <select onchange="changerRole('${c.identifiant}', this.value)">
+        <select onchange="changerRole('${c.identifiant}', this.value)" style="flex:1 1 45%;">
           <option value="benevole"    ${c.role === 'benevole' ? 'selected' : ''}>Bénévole</option>
           <option value="responsable" ${c.role === 'responsable' ? 'selected' : ''}>Responsable</option>
           <option value="webmaster"   ${c.role === 'webmaster' ? 'selected' : ''}>Webmaster</option>
         </select>
+        <select onchange="changerPoleMembre('${c.identifiant}', this.value)" style="flex:1 1 45%;" title="Pôle de rattachement">
+          ${optPoles.replace(`value="${c.pole || ''}"`, `value="${c.pole || ''}" selected`)}
+        </select>
+        <button onclick="reinitPinMembre('${c.identifiant}')" style="flex:1 1 auto; padding:6px 10px; font-size:12px; background:#fff5e6; border:1px solid #e8b26a; border-radius:8px; cursor:pointer;">🔑 Reset PIN</button>
+        <button onclick="reinitIdentifiantMembre('${c.identifiant}')" style="flex:1 1 auto; padding:6px 10px; font-size:12px; background:#eef4ff; border:1px solid #a4bfe3; border-radius:8px; cursor:pointer;">✏️ Identifiant</button>
       </div>`).join('');
   }
   function changerRole(id, nouveauRole) {
@@ -2921,6 +3256,45 @@
     sb.from('membres').update({ role: nouveauRole }).eq('identifiant', id)
       .then(({ error }) => { if (error) console.error('MAJ rôle échouée', error); });
     montrerToast(`${c.prenom} est maintenant ${nouveauRole}.`);
+  }
+  function changerPoleMembre(id, nouveauPole) {
+    const c = comptesDemo.find(x => x.identifiant === id);
+    if (!c) return;
+    c.pole = nouveauPole || null;
+    sb.from('membres').update({ pole: nouveauPole || null }).eq('identifiant', id)
+      .then(({ error }) => { if (error) console.error('MAJ pôle échouée', error); });
+    montrerToast(`${c.prenom} → ${nouveauPole ? LABELS_POLE[nouveauPole] : 'aucun pôle'}.`);
+  }
+  async function reinitPinMembre(id) {
+    const c = comptesDemo.find(x => x.identifiant === id);
+    if (!c) return;
+    ouvrirModale({
+      emoji: "🔑", titre: "Réinitialiser le PIN ?",
+      texte: `Le PIN de ${c.prenom} sera effacé. Il en choisira un nouveau à sa prochaine connexion.`,
+      labelOk: "Oui, réinitialiser", styleOk: "principal", labelNon: "Annuler",
+      onOk: async () => {
+        const { error } = await sb.from('membres').update({ pin: null }).eq('identifiant', id);
+        if (error) { console.error('Reset PIN échoué', error); montrerToast("Erreur, réessaie."); return; }
+        c.pin = null;
+        montrerToast("PIN réinitialisé 🔑");
+      }
+    });
+  }
+  async function reinitIdentifiantMembre(id) {
+    const c = comptesDemo.find(x => x.identifiant === id);
+    if (!c) return;
+    const nouveau = prompt(`Nouvel identifiant pour ${c.prenom} :`, c.identifiant);
+    if (!nouveau) return;
+    const validation = validerFormatIdentifiant(nouveau);
+    if (validation.erreur) { montrerToast(validation.erreur); return; }
+    if (nouveau !== c.identifiant && comptesDemo.some(x => x.identifiant === nouveau)) {
+      montrerToast("Cet identifiant est déjà pris."); return;
+    }
+    const { error } = await sb.from('membres').update({ identifiant: nouveau, identifiant_perso: true }).eq('identifiant', id);
+    if (error) { console.error('MAJ identifiant échouée', error); montrerToast("Erreur, réessaie."); return; }
+    c.identifiant = nouveau; c.identifiantPerso = true;
+    afficherMembresAdmin();
+    montrerToast("Identifiant mis à jour ✏️");
   }
 
   /* Création d'un compte par le webmaster */
@@ -2936,6 +3310,8 @@
     const nom    = document.getElementById('a-nom').value.trim();
     const id     = document.getElementById('a-id').value.trim().toLowerCase();
     const role   = document.getElementById('a-role').value;
+    const pole   = (document.getElementById('a-pole')?.value) || null;
+    const fonction = (document.getElementById('a-fonction')?.value || '').trim();
     const err = document.getElementById('a-erreur');
     err.classList.remove('visible');
     const stop = (m) => { err.textContent = m; err.classList.add('visible'); };
@@ -2944,10 +3320,11 @@
     if (!id) { stop("Choisis un identifiant."); return; }
     if (comptesDemo.some(c => c.identifiant === id)) { stop("Cet identifiant est déjà pris."); return; }
 
-    const nouveau = { identifiant: id, prenom, nom, role, statut: 'valide', pin: null, tel: '', email: '' };
+    const nouveau = { identifiant: id, prenom, nom, role, pole, fonction, statut: 'valide', pin: null, tel: '', email: '' };
     // Écrit dans Supabase
     const { error } = await sb.from('membres').insert({
-      identifiant: id, prenom, nom, role, statut: 'valide', pin: null
+      identifiant: id, prenom, nom, role, statut: 'valide', pin: null,
+      pole: pole || null, fonction: fonction || null,
     });
     if (error) { console.error('Création compte échouée', error); stop("Erreur : compte non créé."); return; }
 
@@ -2956,9 +3333,112 @@
     document.getElementById('a-nom').value = '';
     document.getElementById('a-id').value = '';
     document.getElementById('a-role').value = 'benevole';
+    if (document.getElementById('a-pole')) document.getElementById('a-pole').value = '';
+    if (document.getElementById('a-fonction')) document.getElementById('a-fonction').value = '';
     document.getElementById('form-compte').style.display = 'none';
     afficherMembresAdmin();
     montrerToast(`Compte créé : ${prenom} (${role}). Il choisira son PIN à la 1re connexion.`);
+  });
+
+  /* ------- Gestion des pôles (webmaster) ------- */
+  function afficherPolesAdmin() {
+    const zone = document.getElementById('liste-poles');
+    if (!zone) return;
+    if (!TOUS_POLES.length) {
+      zone.innerHTML = `<p class="sous-titre" style="font-size:13px;">Aucun pôle. Ajoute-en un ci-dessous.</p>`;
+      return;
+    }
+    // Options de membres pour les menus déroulants
+    const membresValides = comptesDemo.filter(c => c.statut === 'valide');
+    const optionsMembres = (selectionne) =>
+      `<option value="">— Personne —</option>` +
+      membresValides.map(m =>
+        `<option value="${m.id}"${m.id === selectionne ? ' selected' : ''}>${m.prenom}${m.nom ? ' ' + m.nom : ''}</option>`
+      ).join('');
+
+    zone.innerHTML = TOUS_POLES.map(code => {
+      const libelle = LABELS_POLE[code] || code;
+      const resp = (RESP_POLE[code] || {}).responsable_id || null;
+      const adj  = (RESP_POLE[code] || {}).adjoint_id || null;
+      const nomDe = (id) => {
+        const m = comptesDemo.find(c => c.id === id);
+        return m ? `${m.prenom}${m.nom ? ' ' + m.nom : ''}` : '—';
+      };
+      return `
+        <div class="membre-ligne" style="flex-wrap:wrap; gap:8px;">
+          <div class="m-info" style="flex:1 1 100%;">
+            <div class="m-nom">${libelle}</div>
+            <div class="m-sous">👤 ${nomDe(resp)}${adj ? ` &nbsp;·&nbsp; 👥 ${nomDe(adj)}` : ''}</div>
+          </div>
+
+          <div style="flex:1 1 100%; display:flex; gap:8px; flex-wrap:wrap;">
+            <label style="flex:1 1 140px; font-size:11px; font-weight:700; color:var(--gris-doux);">
+              Responsable
+              <select onchange="assignerPole('${code}', 'responsable_id', this.value)"
+                      style="width:100%; margin-top:3px; padding:6px 8px; font-size:12px; font-family:var(--police); border:1px solid var(--bordure); border-radius:8px;">
+                ${optionsMembres(resp)}
+              </select>
+            </label>
+            <label style="flex:1 1 140px; font-size:11px; font-weight:700; color:var(--gris-doux);">
+              Adjoint
+              <select onchange="assignerPole('${code}', 'adjoint_id', this.value)"
+                      style="width:100%; margin-top:3px; padding:6px 8px; font-size:12px; font-family:var(--police); border:1px solid var(--bordure); border-radius:8px;">
+                ${optionsMembres(adj)}
+              </select>
+            </label>
+          </div>
+
+          <button onclick="renommerPoleUI('${code}')" style="flex:1 1 auto; padding:6px 10px; font-size:12px; background:#eef4ff; border:1px solid #a4bfe3; border-radius:8px; cursor:pointer;">✏️ Renommer</button>
+          <button onclick="supprimerPoleUI('${code}')" style="flex:1 1 auto; padding:6px 10px; font-size:12px; background:#fff0f0; border:1px solid #e3a4a4; border-radius:8px; cursor:pointer;">🗑️ Supprimer</button>
+        </div>`;
+    }).join('');
+  }
+  async function renommerPoleUI(code) {
+    const actuel = LABELS_POLE[code] || '';
+    const nouv = prompt(`Nouveau libellé pour le pôle "${actuel}" :`, actuel);
+    if (!nouv || nouv === actuel) return;
+    if (await renommerPole(code, nouv)) {
+      afficherPolesAdmin();
+      remplirTousLesSelectsDePoles();
+      afficherMembresAdmin();
+      afficherBesoins();
+      montrerToast(`Pôle renommé : ${nouv}`);
+    }
+  }
+  async function supprimerPoleUI(code) {
+    const libelle = LABELS_POLE[code] || code;
+    const utilise =
+      comptesDemo.some(c => c.pole === code) ||
+      besoins.some(b => b.pole === code) ||
+      evenements.some(e => e.pole === code);
+    ouvrirModale({
+      emoji: "🗑️", titre: `Supprimer le pôle "${libelle}" ?`,
+      texte: utilise
+        ? "⚠️ Des membres, besoins ou événements utilisent ce pôle. Ils resteront en base mais n'auront plus de pôle valide. Confirmer ?"
+        : `Le pôle "${libelle}" sera définitivement retiré. Continuer ?`,
+      labelOk: "Supprimer", styleOk: "danger", labelNon: "Annuler",
+      onOk: async () => {
+        if (await supprimerPole(code)) {
+          afficherPolesAdmin();
+          remplirTousLesSelectsDePoles();
+          afficherMembresAdmin();
+          afficherBesoins();
+          montrerToast("Pôle supprimé.");
+        }
+      }
+    });
+  }
+  document.getElementById('p-ajouter')?.addEventListener('click', async () => {
+    const code = document.getElementById('p-code').value.trim().toLowerCase();
+    const libelle = document.getElementById('p-libelle').value.trim();
+    if (await ajouterPole(code, libelle)) {
+      document.getElementById('p-code').value = '';
+      document.getElementById('p-libelle').value = '';
+      afficherPolesAdmin();
+      remplirTousLesSelectsDePoles();
+      afficherMembresAdmin();
+      montrerToast(`Pôle "${libelle}" ajouté.`);
+    }
   });
 
   /* ===========================================================
@@ -3112,10 +3592,11 @@
     document.getElementById('f-duree').value = '';
     document.getElementById('f-precisions').value = '';
     document.getElementById('f-cherche').value = 2;
-    document.getElementById('f-pole').value = 'sportif';
+    rafraichirSelectPole('f-pole');
     document.getElementById('f-urgence').value = 'auto';
     const selResp = document.getElementById('f-responsable');
     if (selResp) selResp.value = '';
+    resetBlocVisibilite('besoin');
     document.querySelectorAll('#modeles .modele').forEach(x => x.classList.remove('choisi'));
     allerEtape(1);
   }
@@ -3128,10 +3609,9 @@
     besoinEnEdition = id;
     document.getElementById('panneau-titre').textContent = "Modifier le besoin";
     document.getElementById('btn-publier').textContent = "Enregistrer";
-    document.getElementById('modeles').style.display = 'none'; // pas de modèles en édition
+    document.getElementById('modeles').style.display = 'none';
     document.getElementById('f-nom').value = b.nom;
     document.getElementById('f-event').value = b.event || '';
-    document.getElementById('f-pole').value = b.pole;
     document.getElementById('f-date').value = b.event ? '' : (b.dateISO || '');
     document.getElementById('f-duree').value = (b.duree === "—") ? '' : b.duree;
     document.getElementById('f-precisions').value = b.precisions || '';
@@ -3139,8 +3619,11 @@
     document.getElementById('f-urgence').value = b.urgenceForcee || 'auto';
     allerEtape(1);
     ouvrirPanneau();
-    // ouvrirPanneau a rempli le menu : on présélectionne le responsable actuel
+    // Après ouvrirPanneau : les selects sont peuplés, on peut affecter
+    const selPole = document.getElementById('f-pole');
+    if (selPole && [...selPole.options].some(o => o.value === b.pole)) selPole.value = b.pole;
     document.getElementById('f-responsable').value = b.responsableId || '';
+    preremplirVisibilite('besoin', b);
   }
 
   document.getElementById('btn-publier').addEventListener('click', async () => {
@@ -3156,11 +3639,14 @@
 
     if (!nom) { montrerToast("Donne un nom au besoin 🙂"); return; }
     if (!cherche || cherche < 1) { montrerToast("Indique au moins 1 bénévole."); return; }
+    if (!peutGererPole(pole)) { montrerToast("Tu n'as pas les droits pour créer sur ce pôle."); return; }
+
+    const vis = lireVisibilite('besoin');
+    if (vis.erreur) { montrerToast(vis.erreur); return; }
 
     const ev = evenements.find(e => e.id === event);
     const dateFinale = ev ? ev.dateISO : (dateISO || null);
 
-    // Colonnes de la table besoins dans Supabase
     const ligne = {
       nom, pole,
       date_iso: dateFinale,
@@ -3170,10 +3656,11 @@
       cherche,
       evenement_id: event,
       responsable_id: respId,
+      visibilite: vis.visibilite,
+      visibilite_cible: vis.cible,
     };
 
     if (besoinEnEdition !== null) {
-      // --- MODIFICATION ---
       const { error } = await sb.from('besoins').update(ligne).eq('id', besoinEnEdition);
       if (error) { console.error('Modification besoin échouée', error); montrerToast("Erreur : besoin non modifié."); return; }
       resetPanneauCreation();
@@ -3182,7 +3669,6 @@
       await chargerBesoins();
       montrerToast("Besoin mis à jour ✏️");
     } else {
-      // --- CRÉATION ---
       const { error } = await sb.from('besoins').insert(ligne);
       if (error) { console.error('Création besoin échouée', error); montrerToast("Erreur : besoin non créé."); return; }
       resetPanneauCreation();
@@ -3206,23 +3692,104 @@
   /* Convertit une ligne "membres" Supabase en objet compte de l'app */
   function ligneVersMembre(row) {
     return {
-      id: row.id,                 // uuid, nécessaire pour les inscriptions
+      id: row.id,
       identifiant: row.identifiant,
       prenom: row.prenom,
       nom: row.nom || "",
       role: row.role,
-      pin: row.pin,               // null = 1re connexion
+      pin: row.pin,
       statut: row.statut,
       tel: row.tel || "",
       email: row.email || "",
+      pole: row.pole || null,
+      fonction: row.fonction || "",
+      identifiantPerso: !!row.identifiant_perso,
     };
+  }
+
+  /* Liste des responsables du club (bureau + pôles, hors pôle féminisation).
+     Créés automatiquement au 1er démarrage. Identifiant = prenom.nom (sans accents).
+     Ils choisiront leur PIN à leur 1re connexion. */
+  const RESPONSABLES_CLUB = [
+    { prenom: "Nicolas",    nom: "BEGUE",       fonction: "Président" },
+    { prenom: "Jacques",    nom: "BURTIN",      fonction: "Vice-Président" },
+    { prenom: "Roberto",    nom: "VALO BLANCO", fonction: "Vice-Président / Pôle sponsors / Gestion des officiels" },
+    { prenom: "Arnaud",     nom: "MOORE",       fonction: "Trésorier" },
+    { prenom: "Carole",     nom: "BOUBEE",      fonction: "Trésorière adjointe" },
+    { prenom: "Agnès",      nom: "SELLES",      fonction: "Secrétaire" },
+    { prenom: "Christelle", nom: "LETEXIER",    fonction: "Secrétaire adjointe / Adjointe gestion du matériel" },
+    { prenom: "Lohan",      nom: "BOULARD",     fonction: "Directeur des sportifs / Adjoint pôle arbitrage" },
+    { prenom: "Cédric",     nom: "PUAUD",       fonction: "Adjoint directeur des sports / Pôle communication" },
+    { prenom: "Clémentine", nom: "",            fonction: "Adjointe pôle communication" },
+    { prenom: "Jérôme",     nom: "MARTINI",     fonction: "Pôle événementiel" },
+    { prenom: "Diane",      nom: "",            fonction: "Adjointe pôle événementiel" },
+    { prenom: "Julien",     nom: "BOURDEAU",    fonction: "Pôle sponsors" },
+    { prenom: "Joseph",     nom: "DI CREA",     fonction: "Pôle sponsors" },
+    { prenom: "Jonathan",   nom: "ROUX",        fonction: "Pôle arbitrage" },
+    { prenom: "Régis",      nom: "HEULLE",      fonction: "Gestion du matériel et relation partenaire" },
+    { prenom: "Céline",     nom: "ROCHAY",      fonction: "Déléguée Comité et COQ / Responsable buvettes" },
+    { prenom: "Barbara",    nom: "",            fonction: "Adjointe buvettes" },
+  ];
+
+  /* Retire les accents et met en minuscules pour fabriquer un identifiant propre */
+  function sansAccents(s) {
+    return (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  }
+  function fabriquerIdentifiant(prenom, nom) {
+    const p = sansAccents(prenom).replace(/[^a-z0-9]/g, "");
+    const n = sansAccents(nom).replace(/[^a-z0-9]/g, "");
+    return n ? `${p}.${n}` : p;
+  }
+  /* Valide un identifiant : minuscules/chiffres/./-/_, 3-40 caractères */
+  function validerFormatIdentifiant(id) {
+    if (!id) return { erreur: "Identifiant vide." };
+    if (id.length < 3 || id.length > 40) return { erreur: "L'identifiant doit faire entre 3 et 40 caractères." };
+    if (!/^[a-z0-9._-]+$/.test(id)) return { erreur: "Uniquement lettres minuscules, chiffres, . _ -" };
+    return { ok: true };
+  }
+
+  /* Crée en base les responsables manquants (ne touche pas aux existants) */
+  /* Devine le pôle d'un responsable à partir de sa fonction */
+  function devinePoleDepuisFonction(fonction) {
+    const dr = droitsSelonFonction(fonction);
+    if (dr === 'tous') return 'admin';
+    if (Array.isArray(dr) && dr.length) return dr[0];
+    return null;
+  }
+
+  async function seederResponsables() {
+    const dejaLa = new Set(comptesDemo.map(c => c.identifiant));
+    const aCreer = [];
+    for (const r of RESPONSABLES_CLUB) {
+      const id = fabriquerIdentifiant(r.prenom, r.nom);
+      if (!dejaLa.has(id)) {
+        aCreer.push({
+          identifiant: id,
+          prenom: r.prenom,
+          nom: r.nom,
+          role: 'responsable',
+          statut: 'valide',
+          pin: null,
+          fonction: r.fonction,
+          pole: devinePoleDepuisFonction(r.fonction),
+        });
+      }
+    }
+    if (!aCreer.length) return;
+    const { error } = await sb.from('membres').insert(aCreer);
+    if (error) { console.error('Seed responsables échoué', error); return; }
+    console.log(`${aCreer.length} responsable(s) créé(s).`);
   }
 
   /* Charge tous les membres depuis Supabase dans le cache */
   async function chargerMembres() {
-    const { data, error } = await sb.from('membres').select('*');
+    let { data, error } = await sb.from('membres').select('*');
     if (error) { console.error('Chargement membres échoué', error); return; }
     comptesDemo = data.map(ligneVersMembre);
+    // Seed initial des responsables si besoin, puis rechargement
+    await seederResponsables();
+    const { data: data2, error: err2 } = await sb.from('membres').select('*');
+    if (!err2) comptesDemo = data2.map(ligneVersMembre);
   }
 
   /* Mémoire simple : on retient l'identité sur l'appareil si possible */
@@ -3240,9 +3807,15 @@
   function connecter(membre) {
     MOI = membre.prenom;
     MON_ID = membre.id || null;
+    MON_IDENTIFIANT = membre.identifiant || "";
+    MON_POLE = membre.pole || null;
+    MA_FONCTION = membre.fonction || "";
+    MON_ID_PERSO = !!membre.identifiantPerso;
     ecranConnexion.classList.add('cache');
     document.getElementById('accueil-bonjour').textContent = `Bonjour ${membre.prenom} 👋`;
     roleActuel = membre.role || 'benevole';
+
+
 
     // Carte de rôle dans le Profil
     const roles = {
@@ -3600,6 +4173,8 @@
 
   // On charge d'abord les membres depuis Supabase, PUIS on décide de l'écran
   (async () => {
+    await chargerPoles();
+    remplirTousLesSelectsDePoles();
     await chargerMembres();
 
     const session = memLire('assopilot_session');
