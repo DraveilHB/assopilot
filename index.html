@@ -636,6 +636,53 @@
   }
 
   /* Liste des membres */
+  /* ── Administration : onglets Membres / Pôles ── */
+  .admin-onglets {
+    display: flex; gap: 6px; margin: 10px 0 16px;
+    background: var(--fond); padding: 4px; border-radius: 12px;
+  }
+  .admin-onglet {
+    flex: 1; padding: 9px 12px; border: none; cursor: pointer;
+    background: transparent; color: var(--gris-texte);
+    font-family: var(--police); font-size: 13px; font-weight: 800;
+    border-radius: 9px; transition: background .18s, color .18s;
+  }
+  .admin-onglet.actif { background: var(--carte); color: var(--sapin); box-shadow: var(--ombre-xs, 0 1px 3px rgba(0,0,0,.08)); }
+  .admin-vue { display: none; }
+  .admin-vue.actif { display: block; }
+
+  /* ── Carte de pôle (compacte, dépliable) ── */
+  .pole-carte {
+    background: var(--carte); border: 1px solid var(--bordure);
+    border-radius: 14px; padding: 12px 14px; margin-bottom: 8px;
+  }
+  .pole-tete { display: flex; align-items: center; gap: 10px; }
+  .pole-titre { flex: 1; min-width: 0; }
+  .pole-titre .pt-nom { font-size: 14px; font-weight: 800; color: var(--sapin); }
+  .pole-titre .pt-resp { font-size: 12px; color: var(--gris-texte); margin-top: 2px; }
+  .pole-btn {
+    flex: 0 0 auto; border: 1px solid var(--bordure); background: var(--carte);
+    cursor: pointer; font-size: 13px; padding: 6px 10px; border-radius: 9px;
+    font-family: var(--police); transition: border-color .15s, background .15s;
+  }
+  .pole-btn:hover { border-color: var(--vert); background: var(--fond); }
+  .pole-edition { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--bordure); }
+  .pole-carte.ouvert .pole-edition { display: block; }
+  .pole-champs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pole-champ { flex: 1 1 140px; }
+  .pole-champ label { display: block; font-size: 11px; font-weight: 800; color: var(--gris-doux); margin-bottom: 4px; }
+  .pole-champ select {
+    width: 100%; padding: 8px 10px; font-size: 13px; font-family: var(--police);
+    border: 1px solid var(--bordure); border-radius: 9px; background: var(--carte); color: var(--sapin);
+  }
+  .pole-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .pole-actions button {
+    flex: 1; padding: 8px 10px; font-size: 12px; font-weight: 700;
+    font-family: var(--police); border-radius: 9px; cursor: pointer;
+    border: 1px solid var(--bordure); background: var(--carte); color: var(--gris-texte);
+  }
+  .pole-actions .suppr { background: #fdf0ee; border-color: #f3d4cf; color: #a23226; }
+
   .membre-ligne {
     background: var(--carte); border: 1px solid var(--bordure);
     border-radius: var(--r); padding: 13px 15px; margin-bottom: 8px;
@@ -1610,51 +1657,68 @@
 
         <div id="zone-admin" style="display:none; margin-top:8px;">
           <div class="section-titre" style="margin-top:8px;">Administration</div>
-          <button class="btn-creer-event" id="btn-creer-compte" style="margin-bottom:14px;">＋ Créer un compte</button>
 
-          <div id="form-compte" style="display:none;">
-            <div class="cx-champ"><label for="a-prenom">Prénom</label><input id="a-prenom" type="text" placeholder="Jean" /></div>
-            <div class="cx-champ"><label for="a-nom">Nom</label><input id="a-nom" type="text" placeholder="Dupont" /></div>
-            <div class="cx-champ"><label for="a-id">Identifiant</label><input id="a-id" type="text" placeholder="jean.president" autocapitalize="none" /></div>
-            <div class="cx-champ">
-              <label for="a-role">Rôle</label>
-              <select id="a-role">
-                <option value="benevole">Bénévole</option>
-                <option value="responsable">Responsable</option>
-                <option value="webmaster">Webmaster</option>
-              </select>
-            </div>
-            <div class="cx-erreur" id="a-erreur"></div>
-            <div class="cx-champ">
-              <label for="a-pole">Pôle de rattachement</label>
-              <select id="a-pole"><option value="">— aucun —</option></select>
-            </div>
-            <div class="cx-champ">
-              <label for="a-fonction">Fonction (facultatif)</label>
-              <input id="a-fonction" type="text" placeholder="Ex : Trésorière adjointe" />
-            </div>
-            <div class="cx-erreur" id="a-erreur"></div>
-            <button class="btn-publier" id="a-creer">Créer le compte</button>
-            <button class="cx-lien" id="a-annuler">Annuler</button>
-            <p class="sous-titre" style="font-size:12px; margin-top:6px;">La personne choisira son code PIN à sa première connexion.</p>
+          <!-- Onglets : Membres / Pôles -->
+          <div class="admin-onglets">
+            <button class="admin-onglet actif" data-admin="membres">👥 Membres</button>
+            <button class="admin-onglet" data-admin="poles">🎯 Pôles</button>
           </div>
 
-          <div id="liste-membres"><!-- rempli par JS --></div>
+          <!-- ===== Onglet MEMBRES ===== -->
+          <div class="admin-vue actif" data-vue="membres">
+            <button class="btn-creer-event" id="btn-creer-compte" style="margin-bottom:14px;">＋ Créer un compte</button>
 
-          <div class="section-titre" style="margin-top:18px;">Gestion des pôles</div>
-          <div id="liste-poles" style="margin-bottom:10px;"><!-- rempli par JS --></div>
-          <div class="duo" style="display:flex; gap:6px; align-items:flex-end;">
-            <div class="cx-champ" style="flex:1 1 30%;">
-              <label for="p-code">Code</label>
-              <input id="p-code" type="text" placeholder="sponsors" autocapitalize="none" />
+            <div id="form-compte" style="display:none;">
+              <div class="cx-champ"><label for="a-prenom">Prénom</label><input id="a-prenom" type="text" placeholder="Jean" /></div>
+              <div class="cx-champ"><label for="a-nom">Nom</label><input id="a-nom" type="text" placeholder="Dupont" /></div>
+              <div class="cx-champ"><label for="a-id">Identifiant</label><input id="a-id" type="text" placeholder="jean.president" autocapitalize="none" /></div>
+              <div class="cx-champ">
+                <label for="a-role">Rôle</label>
+                <select id="a-role">
+                  <option value="benevole">Bénévole</option>
+                  <option value="responsable">Responsable</option>
+                  <option value="webmaster">Webmaster</option>
+                </select>
+              </div>
+              <div class="cx-champ">
+                <label for="a-pole">Pôle de rattachement</label>
+                <select id="a-pole"><option value="">— aucun —</option></select>
+              </div>
+              <div class="cx-champ">
+                <label for="a-fonction">Fonction (facultatif)</label>
+                <input id="a-fonction" type="text" placeholder="Ex : Trésorière adjointe" />
+              </div>
+              <div class="cx-erreur" id="a-erreur"></div>
+              <button class="btn-publier" id="a-creer">Créer le compte</button>
+              <button class="cx-lien" id="a-annuler">Annuler</button>
+              <p class="sous-titre" style="font-size:12px; margin-top:6px;">La personne choisira son code PIN à sa première connexion.</p>
             </div>
-            <div class="cx-champ" style="flex:1 1 50%;">
-              <label for="p-libelle">Libellé</label>
-              <input id="p-libelle" type="text" placeholder="Pôle sponsors" />
-            </div>
-            <button class="btn-publier" id="p-ajouter" style="flex:0 0 auto; padding:10px 14px;">＋ Ajouter</button>
+
+            <div id="liste-membres"><!-- rempli par JS --></div>
           </div>
-          <p class="sous-titre" style="font-size:12px; margin-top:6px;">Le code est un identifiant court en minuscules (ex : <em>sponsors</em>). Le libellé est ce qui s'affiche.</p>
+
+          <!-- ===== Onglet PÔLES ===== -->
+          <div class="admin-vue" data-vue="poles">
+            <button class="btn-creer-event" id="btn-ajouter-pole" style="margin-bottom:14px;">＋ Ajouter un pôle</button>
+
+            <div id="form-pole" style="display:none;">
+              <div class="duo" style="display:flex; gap:8px; align-items:flex-end;">
+                <div class="cx-champ" style="flex:1 1 35%;">
+                  <label for="p-code">Code</label>
+                  <input id="p-code" type="text" placeholder="sponsors" autocapitalize="none" />
+                </div>
+                <div class="cx-champ" style="flex:1 1 65%;">
+                  <label for="p-libelle">Libellé</label>
+                  <input id="p-libelle" type="text" placeholder="Pôle sponsors" />
+                </div>
+              </div>
+              <button class="btn-publier" id="p-ajouter">Ajouter le pôle</button>
+              <button class="cx-lien" id="p-annuler">Annuler</button>
+              <p class="sous-titre" style="font-size:12px; margin-top:6px;">Le code est un identifiant court en minuscules (ex : <em>sponsors</em>). Le libellé est ce qui s'affiche.</p>
+            </div>
+
+            <div id="liste-poles"><!-- rempli par JS --></div>
+          </div>
         </div>
 
         <button class="btn-deco" id="btn-deco">Se déconnecter</button>
@@ -3298,6 +3362,24 @@
   }
 
   /* Création d'un compte par le webmaster */
+  /* ── Onglets de l'administration (Membres / Pôles) ── */
+  document.querySelectorAll('.admin-onglet').forEach(btn =>
+    btn.addEventListener('click', () => {
+      const cible = btn.dataset.admin;
+      document.querySelectorAll('.admin-onglet').forEach(b => b.classList.toggle('actif', b === btn));
+      document.querySelectorAll('.admin-vue').forEach(v => v.classList.toggle('actif', v.dataset.vue === cible));
+    })
+  );
+
+  /* ── Formulaire d'ajout de pôle (replié par défaut) ── */
+  document.getElementById('btn-ajouter-pole')?.addEventListener('click', () => {
+    const f = document.getElementById('form-pole');
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  });
+  document.getElementById('p-annuler')?.addEventListener('click', () => {
+    document.getElementById('form-pole').style.display = 'none';
+  });
+
   document.getElementById('btn-creer-compte').addEventListener('click', () => {
     const f = document.getElementById('form-compte');
     f.style.display = f.style.display === 'none' ? 'block' : 'none';
@@ -3345,53 +3427,71 @@
     const zone = document.getElementById('liste-poles');
     if (!zone) return;
     if (!TOUS_POLES.length) {
-      zone.innerHTML = `<p class="sous-titre" style="font-size:13px;">Aucun pôle. Ajoute-en un ci-dessous.</p>`;
+      zone.innerHTML = `<p class="sous-titre" style="font-size:13px;">Aucun pôle. Ajoute-en un avec le bouton ci-dessus.</p>`;
       return;
     }
-    // Options de membres pour les menus déroulants
     const membresValides = comptesDemo.filter(c => c.statut === 'valide');
-    const optionsMembres = (selectionne) =>
+    const nomDe = (id) => {
+      const m = comptesDemo.find(c => c.id === id);
+      return m ? `${m.prenom}${m.nom ? ' ' + m.nom : ''}` : null;
+    };
+    const optionsMembres = (choisi) =>
       `<option value="">— Personne —</option>` +
       membresValides.map(m =>
-        `<option value="${m.id}"${m.id === selectionne ? ' selected' : ''}>${m.prenom}${m.nom ? ' ' + m.nom : ''}</option>`
+        `<option value="${m.id}"${m.id === choisi ? ' selected' : ''}>${m.prenom}${m.nom ? ' ' + m.nom : ''}</option>`
       ).join('');
 
     zone.innerHTML = TOUS_POLES.map(code => {
       const libelle = LABELS_POLE[code] || code;
       const resp = (RESP_POLE[code] || {}).responsable_id || null;
       const adj  = (RESP_POLE[code] || {}).adjoint_id || null;
-      const nomDe = (id) => {
-        const m = comptesDemo.find(c => c.id === id);
-        return m ? `${m.prenom}${m.nom ? ' ' + m.nom : ''}` : '—';
-      };
+      const nomResp = nomDe(resp);
+      const nomAdj  = nomDe(adj);
+
+      // Ligne de résumé : qui pilote ce pôle
+      let resume;
+      if (nomResp && nomAdj)      resume = `👤 ${nomResp} &nbsp;·&nbsp; 👥 ${nomAdj}`;
+      else if (nomResp)           resume = `👤 ${nomResp}`;
+      else                        resume = `<span style="color:var(--gris-doux);">Aucun responsable désigné</span>`;
+
       return `
-        <div class="membre-ligne" style="flex-wrap:wrap; gap:8px;">
-          <div class="m-info" style="flex:1 1 100%;">
-            <div class="m-nom">${libelle}</div>
-            <div class="m-sous">👤 ${nomDe(resp)}${adj ? ` &nbsp;·&nbsp; 👥 ${nomDe(adj)}` : ''}</div>
+        <div class="pole-carte" id="pole-${code}">
+          <div class="pole-tete">
+            <div class="pole-titre">
+              <div class="pt-nom">${libelle}</div>
+              <div class="pt-resp">${resume}</div>
+            </div>
+            <button class="pole-btn" onclick="basculerEditionPole('${code}')" title="Modifier">✏️</button>
           </div>
 
-          <div style="flex:1 1 100%; display:flex; gap:8px; flex-wrap:wrap;">
-            <label style="flex:1 1 140px; font-size:11px; font-weight:700; color:var(--gris-doux);">
-              Responsable
-              <select onchange="assignerPole('${code}', 'responsable_id', this.value)"
-                      style="width:100%; margin-top:3px; padding:6px 8px; font-size:12px; font-family:var(--police); border:1px solid var(--bordure); border-radius:8px;">
-                ${optionsMembres(resp)}
-              </select>
-            </label>
-            <label style="flex:1 1 140px; font-size:11px; font-weight:700; color:var(--gris-doux);">
-              Adjoint
-              <select onchange="assignerPole('${code}', 'adjoint_id', this.value)"
-                      style="width:100%; margin-top:3px; padding:6px 8px; font-size:12px; font-family:var(--police); border:1px solid var(--bordure); border-radius:8px;">
-                ${optionsMembres(adj)}
-              </select>
-            </label>
+          <div class="pole-edition">
+            <div class="pole-champs">
+              <div class="pole-champ">
+                <label>Responsable</label>
+                <select onchange="assignerPole('${code}', 'responsable_id', this.value)">${optionsMembres(resp)}</select>
+              </div>
+              <div class="pole-champ">
+                <label>Adjoint</label>
+                <select onchange="assignerPole('${code}', 'adjoint_id', this.value)">${optionsMembres(adj)}</select>
+              </div>
+            </div>
+            <div class="pole-actions">
+              <button onclick="renommerPoleUI('${code}')">✏️ Renommer le pôle</button>
+              <button class="suppr" onclick="supprimerPoleUI('${code}')">🗑️ Supprimer</button>
+            </div>
           </div>
-
-          <button onclick="renommerPoleUI('${code}')" style="flex:1 1 auto; padding:6px 10px; font-size:12px; background:#eef4ff; border:1px solid #a4bfe3; border-radius:8px; cursor:pointer;">✏️ Renommer</button>
-          <button onclick="supprimerPoleUI('${code}')" style="flex:1 1 auto; padding:6px 10px; font-size:12px; background:#fff0f0; border:1px solid #e3a4a4; border-radius:8px; cursor:pointer;">🗑️ Supprimer</button>
         </div>`;
     }).join('');
+  }
+
+  /* Déplie / replie l'édition d'un pôle */
+  function basculerEditionPole(code) {
+    const carte = document.getElementById('pole-' + code);
+    if (!carte) return;
+    const etaitOuvert = carte.classList.contains('ouvert');
+    // On referme les autres pour garder l'écran clair
+    document.querySelectorAll('.pole-carte.ouvert').forEach(c => c.classList.remove('ouvert'));
+    if (!etaitOuvert) carte.classList.add('ouvert');
   }
   async function renommerPoleUI(code) {
     const actuel = LABELS_POLE[code] || '';
@@ -3434,6 +3534,7 @@
     if (await ajouterPole(code, libelle)) {
       document.getElementById('p-code').value = '';
       document.getElementById('p-libelle').value = '';
+      document.getElementById('form-pole').style.display = 'none';
       afficherPolesAdmin();
       remplirTousLesSelectsDePoles();
       afficherMembresAdmin();
