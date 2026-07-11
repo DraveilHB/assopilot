@@ -4099,7 +4099,8 @@
     afficherBesoins();
     // Charge les vraies données depuis Supabase (amorce la démo au 1er lancement)
     (async () => {
-      await amorcerDemoSiVide();
+      // (amorcerDemoSiVide désactivé : l'app est en production, elle ne doit plus
+      //  recréer les besoins de démo quand la liste devient vide)
       await chargerEvenements();
       await chargerBesoins();
       await chargerAnnonces();
