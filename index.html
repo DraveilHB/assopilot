@@ -637,6 +637,72 @@
 
   /* Liste des membres */
   /* ── Administration : onglets Membres / Pôles ── */
+  /* ── Recherche et filtres de membres ── */
+  .recherche-champ {
+    width: 100%; padding: 11px 14px; margin-bottom: 10px;
+    font-family: var(--police); font-size: 14px;
+    border: 1px solid var(--bordure); border-radius: 12px;
+    background: var(--carte); color: var(--sapin);
+  }
+  .recherche-champ:focus { outline: none; border-color: var(--vert); }
+  .filtres-membres { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .fm {
+    padding: 6px 12px; border: 1px solid var(--bordure); background: var(--carte);
+    color: var(--gris-texte); font-family: var(--police); font-size: 12px; font-weight: 700;
+    border-radius: 20px; cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+  }
+  .fm.actif { background: var(--sapin); color: #fff; border-color: var(--sapin); }
+
+  /* ── Carte membre (compacte, dépliable) ── */
+  .membre-carte {
+    background: var(--carte); border: 1px solid var(--bordure);
+    border-radius: 14px; padding: 12px 14px; margin-bottom: 8px;
+  }
+  .membre-tete { display: flex; align-items: center; gap: 10px; }
+  .mb-avatar {
+    flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: #fff;
+  }
+  .mb-titre { flex: 1; min-width: 0; }
+  .mb-nom { font-size: 14px; font-weight: 800; color: var(--sapin); }
+  .mb-sous { font-size: 12px; color: var(--gris-texte); margin-top: 2px; }
+  .mb-badge {
+    flex: 0 0 auto; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 20px;
+    background: var(--fond); color: var(--gris-texte);
+  }
+  .mb-badge.webmaster  { background: #eae4f7; color: #5b3f96; }
+  .mb-badge.responsable{ background: #e3f1e8; color: #1a6e3f; }
+  .mb-btn {
+    flex: 0 0 auto; border: 1px solid var(--bordure); background: var(--carte);
+    cursor: pointer; font-size: 13px; padding: 6px 10px; border-radius: 9px;
+    font-family: var(--police);
+  }
+  .mb-btn:hover { border-color: var(--vert); background: var(--fond); }
+  .membre-edition { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--bordure); }
+  .membre-carte.ouvert .membre-edition { display: block; }
+  .mb-champs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .mb-champ { flex: 1 1 140px; }
+  .mb-champ label { display: block; font-size: 11px; font-weight: 800; color: var(--gris-doux); margin-bottom: 4px; }
+  .mb-champ select {
+    width: 100%; padding: 8px 10px; font-size: 13px; font-family: var(--police);
+    border: 1px solid var(--bordure); border-radius: 9px; background: var(--carte); color: var(--sapin);
+  }
+  .mb-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .mb-actions button {
+    flex: 1; padding: 8px 10px; font-size: 12px; font-weight: 700;
+    font-family: var(--police); border-radius: 9px; cursor: pointer;
+    border: 1px solid var(--bordure); background: var(--carte); color: var(--gris-texte);
+  }
+  .admin-vide { font-size: 13px; color: var(--gris-doux); text-align: center; padding: 20px 0; }
+
+  /* ── Demandes en attente (mises en avant) ── */
+  .bloc-demandes {
+    background: #fdf6e9; border: 1px solid #f0dcb8;
+    border-radius: 14px; padding: 12px 14px; margin-bottom: 14px;
+  }
+  .bloc-demandes .bd-titre { font-size: 13px; font-weight: 800; color: #8a5a08; margin-bottom: 10px; }
+
   .admin-onglets {
     display: flex; gap: 6px; margin: 10px 0 16px;
     background: var(--fond); padding: 4px; border-radius: 12px;
@@ -1692,6 +1758,16 @@
               <button class="btn-publier" id="a-creer">Créer le compte</button>
               <button class="cx-lien" id="a-annuler">Annuler</button>
               <p class="sous-titre" style="font-size:12px; margin-top:6px;">La personne choisira son code PIN à sa première connexion.</p>
+            </div>
+
+            <input type="text" id="recherche-membre" class="recherche-champ"
+                   placeholder="🔍 Rechercher un membre…" autocomplete="off" />
+
+            <div class="filtres-membres" id="filtres-membres">
+              <button class="fm actif" data-role="tous">Tous</button>
+              <button class="fm" data-role="webmaster">Webmasters</button>
+              <button class="fm" data-role="responsable">Responsables</button>
+              <button class="fm" data-role="benevole">Bénévoles</button>
             </div>
 
             <div id="liste-membres"><!-- rempli par JS --></div>
@@ -3289,29 +3365,104 @@
   }
 
   /* Liste de tous les membres validés + gestion (webmaster) */
+  /* Filtres actifs de la liste des membres */
+  let filtreRoleMembre = 'tous';
+  let rechercheMembre = '';
+
+  /* Couleur d'avatar déterminée par le prénom (stable, sans stockage) */
+  function couleurAvatar(texte) {
+    const palette = ['#16a34a','#2C6C90','#B84A32','#7A3F8C','#8A6A2E','#15663a','#a23226','#5b3f96'];
+    let somme = 0;
+    for (let i = 0; i < texte.length; i++) somme += texte.charCodeAt(i);
+    return palette[somme % palette.length];
+  }
+  function initiales(c) {
+    const p = (c.prenom || '?').charAt(0).toUpperCase();
+    const n = (c.nom || '').charAt(0).toUpperCase();
+    return p + n;
+  }
+
   function afficherMembresAdmin() {
     const zone = document.getElementById('liste-membres');
-    const valides = comptesDemo.filter(c => c.statut === 'valide');
-    if (!valides.length) { zone.innerHTML = `<p class="sous-titre" style="font-size:13px;">Aucun membre.</p>`; return; }
+    if (!zone) return;
+
+    let liste = comptesDemo.filter(c => c.statut === 'valide');
+
+    // Filtre par rôle
+    if (filtreRoleMembre !== 'tous') liste = liste.filter(c => c.role === filtreRoleMembre);
+
+    // Recherche (prénom, nom, identifiant)
+    if (rechercheMembre) {
+      const q = rechercheMembre.toLowerCase();
+      liste = liste.filter(c =>
+        (c.prenom || '').toLowerCase().includes(q) ||
+        (c.nom || '').toLowerCase().includes(q) ||
+        (c.identifiant || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Tri alphabétique par prénom
+    liste.sort((a, b) => (a.prenom || '').localeCompare(b.prenom || ''));
+
+    if (!liste.length) {
+      zone.innerHTML = `<p class="admin-vide">${rechercheMembre ? 'Aucun membre ne correspond.' : 'Aucun membre.'}</p>`;
+      return;
+    }
+
     const optPoles = `<option value="">— aucun —</option>` +
       TOUS_POLES.map(p => `<option value="${p}">${LABELS_POLE[p]}</option>`).join('');
-    zone.innerHTML = valides.map(c => `
-      <div class="membre-ligne" style="flex-wrap:wrap; gap:6px;">
-        <div class="m-info" style="flex:1 1 100%;">
-          <div class="m-nom">${c.prenom} ${c.nom || ''}${c.fonction ? ` <span style="font-weight:500; color:var(--gris-texte); font-size:12px;">· ${c.fonction}</span>` : ''}</div>
-          <div class="m-sous">${c.identifiant}${c.identifiantPerso ? ' ✎' : ''}</div>
-        </div>
-        <select onchange="changerRole('${c.identifiant}', this.value)" style="flex:1 1 45%;">
-          <option value="benevole"    ${c.role === 'benevole' ? 'selected' : ''}>Bénévole</option>
-          <option value="responsable" ${c.role === 'responsable' ? 'selected' : ''}>Responsable</option>
-          <option value="webmaster"   ${c.role === 'webmaster' ? 'selected' : ''}>Webmaster</option>
-        </select>
-        <select onchange="changerPoleMembre('${c.identifiant}', this.value)" style="flex:1 1 45%;" title="Pôle de rattachement">
-          ${optPoles.replace(`value="${c.pole || ''}"`, `value="${c.pole || ''}" selected`)}
-        </select>
-        <button onclick="reinitPinMembre('${c.identifiant}')" style="flex:1 1 auto; padding:6px 10px; font-size:12px; background:#fff5e6; border:1px solid #e8b26a; border-radius:8px; cursor:pointer;">🔑 Reset PIN</button>
-        <button onclick="reinitIdentifiantMembre('${c.identifiant}')" style="flex:1 1 auto; padding:6px 10px; font-size:12px; background:#eef4ff; border:1px solid #a4bfe3; border-radius:8px; cursor:pointer;">✏️ Identifiant</button>
-      </div>`).join('');
+
+    const libelleRole = { webmaster: 'Webmaster', responsable: 'Responsable', benevole: 'Bénévole' };
+
+    zone.innerHTML = liste.map(c => {
+      const badge = c.role !== 'benevole'
+        ? `<span class="mb-badge ${c.role}">${libelleRole[c.role]}</span>` : '';
+      const poleNom = c.pole ? (LABELS_POLE[c.pole] || c.pole) : null;
+      return `
+        <div class="membre-carte" id="membre-${c.identifiant}">
+          <div class="membre-tete">
+            <div class="mb-avatar" style="background:${couleurAvatar(c.prenom + (c.nom || ''))};">${initiales(c)}</div>
+            <div class="mb-titre">
+              <div class="mb-nom">${c.prenom} ${c.nom || ''}</div>
+              <div class="mb-sous">${c.identifiant}${poleNom ? ` · ${poleNom}` : ''}${c.fonction ? ` · ${c.fonction}` : ''}</div>
+            </div>
+            ${badge}
+            <button class="mb-btn" onclick="basculerEditionMembre('${c.identifiant}')" title="Modifier">✏️</button>
+          </div>
+
+          <div class="membre-edition">
+            <div class="mb-champs">
+              <div class="mb-champ">
+                <label>Rôle</label>
+                <select onchange="changerRole('${c.identifiant}', this.value)">
+                  <option value="benevole"    ${c.role === 'benevole' ? 'selected' : ''}>Bénévole</option>
+                  <option value="responsable" ${c.role === 'responsable' ? 'selected' : ''}>Responsable</option>
+                  <option value="webmaster"   ${c.role === 'webmaster' ? 'selected' : ''}>Webmaster</option>
+                </select>
+              </div>
+              <div class="mb-champ">
+                <label>Pôle de rattachement</label>
+                <select onchange="changerPoleMembre('${c.identifiant}', this.value)">
+                  ${optPoles.replace(`value="${c.pole || ''}"`, `value="${c.pole || ''}" selected`)}
+                </select>
+              </div>
+            </div>
+            <div class="mb-actions">
+              <button onclick="reinitPinMembre('${c.identifiant}')">🔑 Reset PIN</button>
+              <button onclick="reinitIdentifiantMembre('${c.identifiant}')">✏️ Identifiant</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  /* Déplie / replie l'édition d'un membre */
+  function basculerEditionMembre(id) {
+    const carte = document.getElementById('membre-' + id);
+    if (!carte) return;
+    const ouvert = carte.classList.contains('ouvert');
+    document.querySelectorAll('.membre-carte.ouvert').forEach(c => c.classList.remove('ouvert'));
+    if (!ouvert) carte.classList.add('ouvert');
   }
   function changerRole(id, nouveauRole) {
     const c = comptesDemo.find(x => x.identifiant === id);
@@ -3368,6 +3519,21 @@
       const cible = btn.dataset.admin;
       document.querySelectorAll('.admin-onglet').forEach(b => b.classList.toggle('actif', b === btn));
       document.querySelectorAll('.admin-vue').forEach(v => v.classList.toggle('actif', v.dataset.vue === cible));
+    })
+  );
+
+  /* ── Recherche de membres (filtrage instantané) ── */
+  document.getElementById('recherche-membre')?.addEventListener('input', (e) => {
+    rechercheMembre = e.target.value.trim();
+    afficherMembresAdmin();
+  });
+
+  /* ── Filtres par rôle ── */
+  document.querySelectorAll('.fm').forEach(btn =>
+    btn.addEventListener('click', () => {
+      filtreRoleMembre = btn.dataset.role;
+      document.querySelectorAll('.fm').forEach(b => b.classList.toggle('actif', b === btn));
+      afficherMembresAdmin();
     })
   );
 
