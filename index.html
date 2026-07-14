@@ -725,6 +725,81 @@
   .pc-date { font-size: 12px; color: var(--gris-doux); font-weight: 700; }
   .pc-plus { font-size: 12px; color: var(--gris-doux); margin-top: 8px; font-weight: 700; }
 
+  /* ══════ WIZARD (assistant étape par étape) ══════ */
+  .wz-fil { display: flex; gap: 5px; margin: 4px 0 18px; }
+  .wz-pas {
+    flex: 1; height: 4px; border-radius: 4px; background: var(--bordure);
+    transition: background .25s;
+  }
+  .wz-pas.actif { background: var(--vert); }
+  .wz-etape { display: none; }
+  .wz-etape.actif { display: block; animation: wzApparait .22s ease; }
+  @keyframes wzApparait { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: none; } }
+  .wz-question {
+    font-size: 17px; font-weight: 800; color: var(--sapin);
+    margin-bottom: 14px; line-height: 1.35;
+  }
+  .wz-label { display: block; font-size: 12px; font-weight: 800; color: var(--gris-doux); margin-bottom: 8px; }
+
+  /* Raccourcis de date */
+  .wz-raccourcis { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .wz-chip {
+    padding: 8px 14px; border: 1px solid var(--bordure); background: var(--carte);
+    color: var(--gris-texte); font-family: var(--police); font-size: 13px; font-weight: 700;
+    border-radius: 20px; cursor: pointer; transition: all .15s;
+  }
+  .wz-chip:hover { border-color: var(--vert); }
+  .wz-chip.actif { background: var(--vert); color: #fff; border-color: var(--vert); }
+
+  /* Grandes options cliquables */
+  .wz-choix { display: flex; flex-direction: column; gap: 8px; }
+  .wz-opt {
+    display: flex; align-items: center; gap: 12px; text-align: left;
+    padding: 14px; border: 2px solid var(--bordure); background: var(--carte);
+    border-radius: 14px; cursor: pointer; font-family: var(--police);
+    transition: border-color .15s, background .15s;
+  }
+  .wz-opt:hover { border-color: var(--vert); }
+  .wz-opt.actif { border-color: var(--vert); background: #eef7f0; }
+  .wz-ico { font-size: 22px; flex: 0 0 auto; }
+  .wz-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .wz-txt strong { font-size: 14px; font-weight: 800; color: var(--sapin); }
+  .wz-txt span { font-size: 12px; color: var(--gris-texte); }
+
+  /* Cases à cocher (personnes) */
+  .wz-cases {
+    max-height: 220px; overflow-y: auto;
+    border: 1px solid var(--bordure); border-radius: 12px; padding: 6px;
+  }
+  .wz-case {
+    display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+    border-radius: 9px; cursor: pointer; transition: background .12s;
+  }
+  .wz-case:hover { background: var(--fond); }
+  .wz-case input { width: 17px; height: 17px; accent-color: var(--vert); cursor: pointer; }
+  .wz-case span { font-size: 13px; font-weight: 700; color: var(--sapin); }
+
+  /* Récapitulatif final */
+  .wz-recap {
+    background: #eef7f0; border: 1px solid #cdeed9;
+    border-radius: 14px; padding: 14px; margin-top: 18px;
+  }
+  .wz-recap-titre { font-size: 12px; font-weight: 800; color: #12703a; margin-bottom: 10px; }
+  .wz-recap-ligne { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 13px; }
+  .wz-recap-ligne .lbl { color: var(--gris-texte); font-weight: 700; }
+  .wz-recap-ligne .val { color: var(--sapin); font-weight: 800; text-align: right; }
+
+  /* Navigation */
+  .wz-nav { display: flex; gap: 8px; align-items: center; margin-top: 20px; }
+  .wz-nav .btn-publier { flex: 1; margin: 0; }
+  .wz-retour {
+    flex: 0 0 auto; padding: 13px 16px; border: 1px solid var(--bordure);
+    background: var(--carte); color: var(--gris-texte);
+    font-family: var(--police); font-size: 14px; font-weight: 700;
+    border-radius: 13px; cursor: pointer;
+  }
+  .wz-retour:hover { border-color: var(--vert); }
+
   .admin-onglets {
     display: flex; gap: 6px; margin: 10px 0 16px;
     background: var(--fond); padding: 4px; border-radius: 12px;
@@ -1685,7 +1760,7 @@
           <button class="filtre" data-filtre="plustard">Plus tard</button>
         </div>
 
-        <div class="section-titre">Ce week-end au club</div>
+        <div class="section-titre">Prochains événements</div>
         <div id="liste-events"><!-- rempli par JS --></div>
         <div class="section-titre" id="titre-libres">Autres coups de main</div>
         <div id="liste-libres"><!-- rempli par JS --></div>
@@ -1974,40 +2049,103 @@
       <button class="btn-annuler" id="btn-annuler-choix">Annuler</button>
     </div>
 
-    <!-- ============ PANNEAU : créer un événement ============ -->
+    <!-- ============ WIZARD : créer un événement ============ -->
     <div class="panneau" id="panneau-event">
       <div class="poignee"></div>
       <h2 id="event-titre">Nouvel événement</h2>
-      <p class="intro">Choisis un type, donne-lui un nom et une date.</p>
 
-      <div class="modeles" id="types-event">
-        <button class="modele" data-type="match"   data-emoji="🏐">🏐 Match</button>
-        <button class="modele" data-type="tournoi" data-emoji="🏆">🏆 Tournoi</button>
-        <button class="modele" data-type="stage"   data-emoji="💪">💪 Stage</button>
-        <button class="modele" data-type="reunion" data-emoji="📋">📋 Réunion / AG</button>
-        <button class="modele" data-type="fete"    data-emoji="🎉">🎉 Fête</button>
-        <button class="modele" data-type="autre"   data-emoji="📅">✏️ Autre</button>
+      <!-- Fil d'avancement -->
+      <div class="wz-fil" id="wz-fil-event">
+        <span class="wz-pas actif"></span>
+        <span class="wz-pas"></span>
+        <span class="wz-pas"></span>
+        <span class="wz-pas"></span>
       </div>
 
-      <div id="apercu-besoins-types" class="apercu-types" style="display:none;"></div>
-
-      <div class="champ">
-        <label for="fe-nom">Nom de l'événement</label>
-        <input id="fe-nom" type="text" placeholder="Match U15 Garçons" />
-      </div>
-
-      <div class="duo">
-        <div class="champ">
-          <label for="fe-date">Quel jour ?</label>
-          <input id="fe-date" type="date" />
+      <!-- ÉTAPE 1 : quel type ? -->
+      <div class="wz-etape actif" data-wz="1">
+        <p class="wz-question">C'est quel genre d'événement ?</p>
+        <div class="modeles" id="types-event">
+          <button class="modele" data-type="match"   data-emoji="🏐">🏐 Match</button>
+          <button class="modele" data-type="tournoi" data-emoji="🏆">🏆 Tournoi</button>
+          <button class="modele" data-type="stage"   data-emoji="💪">💪 Stage</button>
+          <button class="modele" data-type="reunion" data-emoji="📋">📋 Réunion / AG</button>
+          <button class="modele" data-type="fete"    data-emoji="🎉">🎉 Fête</button>
+          <button class="modele" data-type="autre"   data-emoji="📅">✏️ Autre</button>
         </div>
-        <div class="champ">
-          <label for="fe-heure">À quelle heure ?</label>
-          <input id="fe-heure" type="time" />
+        <div id="apercu-besoins-types" class="apercu-types" style="display:none;"></div>
+      </div>
+
+      <!-- ÉTAPE 2 : quand ? -->
+      <div class="wz-etape" data-wz="2">
+        <p class="wz-question">C'est quand ?</p>
+        <div class="wz-raccourcis" id="wz-dates">
+          <button class="wz-chip" data-jours="0">Aujourd'hui</button>
+          <button class="wz-chip" data-jours="1">Demain</button>
+          <button class="wz-chip" data-jours="samedi">Samedi</button>
+          <button class="wz-chip" data-jours="dimanche">Dimanche</button>
+        </div>
+        <div class="duo">
+          <div class="champ">
+            <label for="fe-date">Quel jour ?</label>
+            <input id="fe-date" type="date" />
+          </div>
+          <div class="champ">
+            <label for="fe-heure">À quelle heure ?</label>
+            <input id="fe-heure" type="time" />
+          </div>
         </div>
       </div>
 
-      <button class="btn-publier" id="btn-publier-event">Créer l'événement</button>
+      <!-- ÉTAPE 3 : comment ça s'appelle ? -->
+      <div class="wz-etape" data-wz="3">
+        <p class="wz-question">Comment ça s'appelle ?</p>
+        <div class="champ">
+          <input id="fe-nom" type="text" placeholder="Match U15 Garçons" />
+        </div>
+      </div>
+
+      <!-- ÉTAPE 4 : qui le voit ? + récapitulatif -->
+      <div class="wz-etape" data-wz="4">
+        <p class="wz-question">Qui doit le voir ?</p>
+        <div class="wz-choix" id="wz-vis-event">
+          <button class="wz-opt actif" data-vis="tous">
+            <span class="wz-ico">🌍</span>
+            <span class="wz-txt"><strong>Tout le monde</strong><span>Tous les membres du club</span></span>
+          </button>
+          <button class="wz-opt" data-vis="bureau">
+            <span class="wz-ico">🏛️</span>
+            <span class="wz-txt"><strong>Le bureau</strong><span>Les personnes conviées aux réunions de bureau</span></span>
+          </button>
+          <button class="wz-opt" data-vis="pole">
+            <span class="wz-ico">🎯</span>
+            <span class="wz-txt"><strong>Un pôle</strong><span>Seulement les membres d'un pôle</span></span>
+          </button>
+          <button class="wz-opt" data-vis="membres">
+            <span class="wz-ico">👥</span>
+            <span class="wz-txt"><strong>Des personnes précises</strong><span>Tu choisis qui</span></span>
+          </button>
+        </div>
+
+        <div class="champ" id="wz-vis-pole-champ" style="display:none;">
+          <label for="fe-vis-pole">Quel pôle ?</label>
+          <select id="fe-vis-pole"></select>
+        </div>
+
+        <div id="wz-vis-membres-champ" style="display:none;">
+          <label class="wz-label">Qui exactement ?</label>
+          <div class="wz-cases" id="fe-vis-membres"><!-- rempli par JS --></div>
+        </div>
+
+        <div class="wz-recap" id="wz-recap-event"><!-- rempli par JS --></div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="wz-nav">
+        <button class="wz-retour" id="wz-event-retour" style="display:none;">← Retour</button>
+        <button class="btn-publier" id="wz-event-suivant">Continuer</button>
+      </div>
+      <button class="btn-publier" id="btn-publier-event" style="display:none;">Créer l'événement</button>
       <button class="btn-annuler" id="btn-annuler-event">Annuler</button>
     </div>
 
@@ -2097,6 +2235,7 @@
   let MON_ID = null;     // uuid du membre connecté (pour les inscriptions Supabase)
   let MON_IDENTIFIANT = "";  // identifiant courant (pour éditer)
   let MON_POLE = null;   // pôle de rattachement du membre (sportif|evenementiel|com|admin|null)
+  let MON_BUREAU = false; // convié aux réunions de bureau ?
   let MA_FONCTION = "";  // fonction textuelle (ex : "Trésorière adjointe")
   let MON_ID_PERSO = false; // identifiant déjà personnalisé ?
   let roleActuel = "benevole";   // rôle du compte connecté : benevole | responsable | webmaster
@@ -2148,6 +2287,7 @@
     if (peutGererPole(item.pole)) return true; // les gestionnaires du pôle voient tout
     const vis = item.visibilite || 'tous';
     if (vis === 'tous') return true;
+    if (vis === 'bureau') return !!MON_BUREAU;
     const cible = item.visibiliteCible;
     if (vis === 'pole')    return !!MON_POLE && cible === MON_POLE;
     if (vis === 'membres') return Array.isArray(cible) && !!MON_ID && cible.includes(MON_ID);
@@ -3109,6 +3249,151 @@
      =========================================================== */
   let typeEventChoisi = null;   // { type, emoji }
   let eventEnEdition = null;    // id de l'événement en cours de modification (null = création)
+
+  /* Visibilité par défaut selon le type d'événement
+     (un match concerne tout le monde ; une AG, le bureau) */
+  const VIS_DEFAUT_EVENT = {
+    match:   'tous',
+    tournoi: 'tous',
+    fete:    'tous',
+    stage:   'tous',
+    reunion: 'bureau',
+    autre:   'tous',
+  };
+
+  /* Applique la visibilité par défaut du type choisi */
+  function wzAppliquerVisDefaut(type) {
+    const defaut = VIS_DEFAUT_EVENT[type] || 'tous';
+    wzVisEvent = defaut;
+    document.querySelectorAll('#wz-vis-event .wz-opt').forEach(o =>
+      o.classList.toggle('actif', o.dataset.vis === defaut));
+    const vp = document.getElementById('wz-vis-pole-champ');
+    const vm = document.getElementById('wz-vis-membres-champ');
+    if (vp) vp.style.display = defaut === 'pole' ? 'block' : 'none';
+    if (vm) vm.style.display = defaut === 'membres' ? 'block' : 'none';
+  }
+
+  /* ══════════════ WIZARD ÉVÉNEMENT ══════════════ */
+  let wzEtapeEvent = 1;
+  const WZ_TOTAL_EVENT = 4;
+  let wzVisEvent = 'tous';       // tous | pole | membres
+  let wzVisCible = null;         // code de pôle, ou tableau d'id de membres
+
+  /* Affiche l'étape n du wizard */
+  function wzAllerEvent(n) {
+    wzEtapeEvent = Math.max(1, Math.min(WZ_TOTAL_EVENT, n));
+    document.querySelectorAll('#panneau-event .wz-etape').forEach(e =>
+      e.classList.toggle('actif', +e.dataset.wz === wzEtapeEvent));
+    document.querySelectorAll('#wz-fil-event .wz-pas').forEach((p, i) =>
+      p.classList.toggle('actif', i < wzEtapeEvent));
+
+    // Boutons de navigation
+    document.getElementById('wz-event-retour').style.display = wzEtapeEvent > 1 ? 'block' : 'none';
+    const derniere = wzEtapeEvent === WZ_TOTAL_EVENT;
+    document.getElementById('wz-event-suivant').style.display = derniere ? 'none' : 'block';
+    document.getElementById('btn-publier-event').style.display = derniere ? 'block' : 'none';
+
+    if (derniere) wzRecapEvent();
+  }
+
+  /* Vérifie que l'étape courante est valide avant de continuer */
+  function wzValideEtapeEvent() {
+    if (wzEtapeEvent === 1 && !typeEventChoisi) {
+      montrerToast("Choisis un type d'événement 🙂"); return false;
+    }
+    if (wzEtapeEvent === 2 && !document.getElementById('fe-date').value) {
+      montrerToast("Choisis une date 🙂"); return false;
+    }
+    if (wzEtapeEvent === 3 && !document.getElementById('fe-nom').value.trim()) {
+      montrerToast("Donne un nom à l'événement 🙂"); return false;
+    }
+    return true;
+  }
+
+  /* Récapitulatif avant validation */
+  function wzRecapEvent() {
+    const zone = document.getElementById('wz-recap-event');
+    if (!zone) return;
+    const nom = document.getElementById('fe-nom').value.trim();
+    const dateISO = document.getElementById('fe-date').value;
+    const heure = document.getElementById('fe-heure').value;
+    const type = typeEventChoisi ? typeEventChoisi.type : null;
+    const modeles = (type && besoinsTypesParEvent[type]) ? besoinsTypesParEvent[type] : [];
+
+    let visTxt = 'Tout le monde';
+    if (wzVisEvent === 'bureau')  visTxt = '🏛️ Le bureau';
+    if (wzVisEvent === 'pole')    visTxt = LABELS_POLE[document.getElementById('fe-vis-pole').value] || 'Un pôle';
+    if (wzVisEvent === 'membres') {
+      const n = document.querySelectorAll('#fe-vis-membres input:checked').length;
+      visTxt = n ? `${n} personne${n > 1 ? 's' : ''}` : 'Personne (à choisir)';
+    }
+
+    zone.innerHTML = `
+      <div class="wz-recap-titre">✅ Récapitulatif</div>
+      <div class="wz-recap-ligne"><span class="lbl">Type</span><span class="val">${typeEventChoisi ? typeEventChoisi.emoji : '📅'} ${type || '—'}</span></div>
+      <div class="wz-recap-ligne"><span class="lbl">Nom</span><span class="val">${nom || '—'}</span></div>
+      <div class="wz-recap-ligne"><span class="lbl">Quand</span><span class="val">${dateISO ? formaterDateCourte(dateISO) : '—'}${heure ? ' à ' + heure : ''}</span></div>
+      <div class="wz-recap-ligne"><span class="lbl">Visible par</span><span class="val">${visTxt}</span></div>
+      ${modeles.length ? `<div class="wz-recap-ligne"><span class="lbl">Besoins créés</span><span class="val">${modeles.length} automatiquement</span></div>` : ''}`;
+  }
+
+  /* Remplit la liste de personnes à cocher */
+  function wzRemplirMembres() {
+    const zone = document.getElementById('fe-vis-membres');
+    if (!zone) return;
+    const membres = comptesDemo.filter(c => c.statut === 'valide')
+      .sort((a, b) => (a.prenom || '').localeCompare(b.prenom || ''));
+    zone.innerHTML = membres.map(m => `
+      <label class="wz-case">
+        <input type="checkbox" value="${m.id}" />
+        <span>${m.prenom} ${m.nom || ''}</span>
+      </label>`).join('');
+  }
+
+  /* Remplit le menu des pôles */
+  function wzRemplirPoles() {
+    const sel = document.getElementById('fe-vis-pole');
+    if (!sel) return;
+    sel.innerHTML = TOUS_POLES.map(p => `<option value="${p}">${LABELS_POLE[p]}</option>`).join('');
+  }
+
+  /* Navigation */
+  document.getElementById('wz-event-suivant')?.addEventListener('click', () => {
+    if (wzValideEtapeEvent()) wzAllerEvent(wzEtapeEvent + 1);
+  });
+  document.getElementById('wz-event-retour')?.addEventListener('click', () => wzAllerEvent(wzEtapeEvent - 1));
+
+  /* Raccourcis de date */
+  document.querySelectorAll('#wz-dates .wz-chip').forEach(chip =>
+    chip.addEventListener('click', () => {
+      const d = new Date();
+      const v = chip.dataset.jours;
+      if (v === 'samedi' || v === 'dimanche') {
+        const cible = v === 'samedi' ? 6 : 0;
+        let delta = (cible - d.getDay() + 7) % 7;
+        if (delta === 0) delta = 7;   // le prochain, pas aujourd'hui
+        d.setDate(d.getDate() + delta);
+      } else {
+        d.setDate(d.getDate() + parseInt(v, 10));
+      }
+      document.getElementById('fe-date').value = d.toISOString().slice(0, 10);
+      document.querySelectorAll('#wz-dates .wz-chip').forEach(c => c.classList.toggle('actif', c === chip));
+    })
+  );
+
+  /* Choix de visibilité */
+  document.querySelectorAll('#wz-vis-event .wz-opt').forEach(opt =>
+    opt.addEventListener('click', () => {
+      wzVisEvent = opt.dataset.vis;
+      document.querySelectorAll('#wz-vis-event .wz-opt').forEach(o => o.classList.toggle('actif', o === opt));
+      document.getElementById('wz-vis-pole-champ').style.display    = wzVisEvent === 'pole' ? 'block' : 'none';
+      document.getElementById('wz-vis-membres-champ').style.display = wzVisEvent === 'membres' ? 'block' : 'none';
+      if (wzVisEvent === 'pole') wzRemplirPoles();
+      if (wzVisEvent === 'membres') wzRemplirMembres();
+      wzRecapEvent();
+    })
+  );
+
   let prochainEventId = 1;
 
   /* Sélection d'un type d'événement (pré-remplit le nom si vide) */
@@ -3117,6 +3402,8 @@
       typeEventChoisi = { type: btn.dataset.type, emoji: btn.dataset.emoji };
       document.querySelectorAll('#types-event .modele').forEach(x => x.classList.remove('choisi'));
       btn.classList.add('choisi');
+      // La visibilité s'adapte au type (match → tous, réunion → bureau)
+      wzAppliquerVisDefaut(btn.dataset.type);
       // Pré-remplir un nom suggéré si le champ est vide (sauf "Autre")
       const champNom = document.getElementById('fe-nom');
       if (!champNom.value.trim() && btn.dataset.type !== 'autre') {
@@ -3183,6 +3470,16 @@
     document.getElementById('fe-nom').value = '';
     document.getElementById('fe-date').value = '';
     document.getElementById('fe-heure').value = '';
+    // Remet le wizard à zéro
+    wzVisEvent = 'tous';
+    wzVisCible = null;
+    document.querySelectorAll('#wz-vis-event .wz-opt').forEach((o, i) => o.classList.toggle('actif', i === 0));
+    document.querySelectorAll('#wz-dates .wz-chip').forEach(c => c.classList.remove('actif'));
+    const vp = document.getElementById('wz-vis-pole-champ');
+    const vm = document.getElementById('wz-vis-membres-champ');
+    if (vp) vp.style.display = 'none';
+    if (vm) vm.style.display = 'none';
+    wzAllerEvent(1);
     rafraichirSelectPole('fe-pole');
     resetBlocVisibilite('event');
   }
@@ -3252,7 +3549,25 @@
 
   /* Lit les valeurs du bloc visibilité et renvoie {visibilite, cible} */
   function lireVisibilite(kind) {
-    const prefix = kind === 'event' ? 've' : 'v';
+    // Les événements passent par le wizard
+    if (kind === 'event') {
+      if (wzVisEvent === 'bureau') {
+        return { visibilite: 'bureau', cible: null };
+      }
+      if (wzVisEvent === 'pole') {
+        const p = document.getElementById('fe-vis-pole').value;
+        if (!p) return { erreur: "Choisis un pôle." };
+        return { visibilite: 'pole', cible: p };
+      }
+      if (wzVisEvent === 'membres') {
+        const ids = [...document.querySelectorAll('#fe-vis-membres input:checked')].map(c => c.value);
+        if (!ids.length) return { erreur: "Coche au moins une personne." };
+        return { visibilite: 'membres', cible: ids };
+      }
+      return { visibilite: 'tous', cible: null };
+    }
+
+    const prefix = 'v';
     const modeEl = document.getElementById(`${prefix}-mode`);
     if (!modeEl) return { visibilite: 'tous', cible: null };
     const mode = modeEl.value;
@@ -3635,6 +3950,11 @@
                 </select>
               </div>
             </div>
+            <label class="wz-case" style="margin-top:10px; border:1px solid var(--bordure); border-radius:10px;">
+              <input type="checkbox" ${c.bureau ? 'checked' : ''}
+                     onchange="changerBureau('${c.identifiant}', this.checked)" />
+              <span>🏛️ Convié aux réunions de bureau</span>
+            </label>
             <div class="mb-actions">
               <button onclick="reinitPinMembre('${c.identifiant}')">🔑 Reset PIN</button>
               <button onclick="reinitIdentifiantMembre('${c.identifiant}')">✏️ Identifiant</button>
@@ -3676,6 +3996,16 @@
     c.statut = 'valide';
     afficherMembresAdmin();
     montrerToast(`${c.prenom} est réactivé ✅`);
+  }
+
+  /* Coche / décoche « convié aux réunions de bureau » */
+  async function changerBureau(id, valeur) {
+    const c = comptesDemo.find(x => x.identifiant === id);
+    if (!c) return;
+    const { error } = await sb.from('membres').update({ bureau: valeur }).eq('identifiant', id);
+    if (error) { console.error('Bureau non modifié', error); montrerToast("Erreur, réessaie."); return; }
+    c.bureau = valeur;
+    montrerToast(valeur ? `${c.prenom} est convié au bureau 🏛️` : `${c.prenom} n'est plus convié au bureau.`);
   }
 
   /* Déplie / replie l'édition d'un membre */
@@ -4192,6 +4522,7 @@
       email: row.email || "",
       pole: row.pole || null,
       fonction: row.fonction || "",
+      bureau: !!row.bureau,
       identifiantPerso: !!row.identifiant_perso,
     };
   }
@@ -4298,6 +4629,7 @@
     MON_ID = membre.id || null;
     MON_IDENTIFIANT = membre.identifiant || "";
     MON_POLE = membre.pole || null;
+    MON_BUREAU = !!membre.bureau;
     MA_FONCTION = membre.fonction || "";
     MON_ID_PERSO = !!membre.identifiantPerso;
     ecranConnexion.classList.add('cache');
