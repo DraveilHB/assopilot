@@ -2284,6 +2284,7 @@
   /* Un item (besoin/événement) est-il visible pour l'utilisateur courant ? */
   function estVisiblePourMoi(item) {
     if (!item) return true;
+    if (estWebmaster()) return true;           // les webmasters voient tout
     if (peutGererPole(item.pole)) return true; // les gestionnaires du pôle voient tout
     const vis = item.visibilite || 'tous';
     if (vis === 'tous') return true;
@@ -4607,7 +4608,8 @@
     if (error) { console.error('Chargement membres échoué', error); return; }
     comptesDemo = data.map(ligneVersMembre);
     // Seed initial des responsables si besoin, puis rechargement
-    await seederResponsables();
+    // (seederResponsables désactivé : les comptes existent déjà en base.
+    //  Cette fonction créait des doublons à chaque démarrage.)
     const { data: data2, error: err2 } = await sb.from('membres').select('*');
     if (!err2) comptesDemo = data2.map(ligneVersMembre);
   }
