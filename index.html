@@ -673,6 +673,9 @@
   }
   .mb-badge.webmaster  { background: #eae4f7; color: #5b3f96; }
   .mb-badge.responsable{ background: #e3f1e8; color: #1a6e3f; }
+  .mb-badge.inactif    { background: #eceae6; color: #8a8378; }
+  .membre-carte.estompe { opacity: .62; }
+  .mb-actions .danger { background: #fdf0ee; border-color: #f3d4cf; color: #a23226; }
   .mb-btn {
     flex: 0 0 auto; border: 1px solid var(--bordure); background: var(--carte);
     cursor: pointer; font-size: 13px; padding: 6px 10px; border-radius: 9px;
@@ -702,6 +705,25 @@
     border-radius: 14px; padding: 12px 14px; margin-bottom: 14px;
   }
   .bloc-demandes .bd-titre { font-size: 13px; font-weight: 800; color: #8a5a08; margin-bottom: 10px; }
+
+  /* ── Mon parcours (historique personnel, visible par soi seul) ── */
+  .parcours-carte {
+    background: var(--carte); border: 1px solid var(--bordure);
+    border-left: 4px solid var(--vert);
+    border-radius: 14px; padding: 14px 16px; margin-top: 14px;
+  }
+  .pc-titre { font-size: 13px; font-weight: 800; color: var(--sapin); margin-bottom: 8px; }
+  .pc-phrase { font-size: 14px; color: var(--gris-texte); line-height: 1.5; }
+  .pc-phrase strong { color: var(--vert-fonce); }
+  .pc-vide { font-size: 13px; color: var(--gris-doux); line-height: 1.5; }
+  .pc-liste { margin-top: 12px; }
+  .pc-ligne {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 0; border-top: 1px solid var(--bordure);
+  }
+  .pc-nom { font-size: 13px; font-weight: 700; color: var(--sapin); }
+  .pc-date { font-size: 12px; color: var(--gris-doux); font-weight: 700; }
+  .pc-plus { font-size: 12px; color: var(--gris-doux); margin-top: 8px; font-weight: 700; }
 
   .admin-onglets {
     display: flex; gap: 6px; margin: 10px 0 16px;
@@ -1694,6 +1716,8 @@
           <span class="badge-role" id="profil-role-badge">🙌</span>
         </div>
 
+        <div id="mon-parcours"><!-- rempli par JS --></div>
+
         <div id="zone-demandes" style="display:none; margin-top:8px;">
           <div class="section-titre" style="margin-top:8px;">Demandes d'inscription</div>
           <div id="liste-demandes"><!-- rempli par JS --></div>
@@ -1768,6 +1792,7 @@
               <button class="fm" data-role="webmaster">Webmasters</button>
               <button class="fm" data-role="responsable">Responsables</button>
               <button class="fm" data-role="benevole">Bénévoles</button>
+              <button class="fm" data-role="inactif">💤 Inactifs</button>
             </div>
 
             <div id="liste-membres"><!-- rempli par JS --></div>
@@ -2256,6 +2281,61 @@
       const { error: errIns } = await sb.from('besoins').insert(besoinsDemo);
       if (errIns) console.error('Insertion démo échouée', errIns);
     }
+  }
+
+  /* Mon parcours : mes coups de main passés (visible par moi seul) */
+  async function afficherMonParcours() {
+    const zone = document.getElementById('mon-parcours');
+    if (!zone || !MON_ID) return;
+
+    // Toutes mes inscriptions, avec le besoin associé
+    const { data, error } = await sb
+      .from('inscriptions')
+      .select('besoin_id, besoins ( nom, date_iso, pole )')
+      .eq('membre_id', MON_ID);
+
+    if (error) { console.error('Parcours indisponible', error); zone.innerHTML = ''; return; }
+
+    const aujourdhui = new Date().toISOString().slice(0, 10);
+    const tous = (data || []).map(i => i.besoins).filter(Boolean);
+    const passes = tous.filter(b => b.date_iso && b.date_iso < aujourdhui)
+                       .sort((a, b) => (b.date_iso || '').localeCompare(a.date_iso || ''));
+    const avenir = tous.filter(b => !b.date_iso || b.date_iso >= aujourdhui).length;
+
+    // Personne n'a encore aidé : message d'encouragement, jamais de reproche
+    if (!tous.length) {
+      zone.innerHTML = `
+        <div class="parcours-carte">
+          <div class="pc-titre">🌱 Ton parcours</div>
+          <p class="pc-vide">Tu n'as pas encore donné de coup de main. Quand tu le feras, tu le retrouveras ici.</p>
+        </div>`;
+      return;
+    }
+
+    const n = passes.length;
+    const phrase = n === 0
+      ? `Tu t'es proposé pour ${avenir} mission${avenir > 1 ? 's' : ''} à venir. Merci ! 💚`
+      : `Tu as donné un coup de main <strong>${n} fois</strong>. Merci pour le club ! 💚`;
+
+    const derniers = passes.slice(0, 5).map(b => `
+      <div class="pc-ligne">
+        <span class="pc-nom">${iconeMission(b.nom)} ${b.nom}</span>
+        <span class="pc-date">${b.date_iso ? formaterDateCourte(b.date_iso) : ''}</span>
+      </div>`).join('');
+
+    zone.innerHTML = `
+      <div class="parcours-carte">
+        <div class="pc-titre">🌱 Ton parcours</div>
+        <p class="pc-phrase">${phrase}</p>
+        ${derniers ? `<div class="pc-liste">${derniers}</div>` : ''}
+        ${passes.length > 5 ? `<div class="pc-plus">+ ${passes.length - 5} autre(s)</div>` : ''}
+      </div>`;
+  }
+
+  /* Date courte pour l'historique : "12 juil." */
+  function formaterDateCourte(iso) {
+    const d = new Date(iso + 'T12:00:00');
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
   }
 
   /* Charge tous les besoins + leurs inscrits depuis Supabase dans le cache */
@@ -2781,6 +2861,7 @@
             .eq('besoin_id', id).eq('membre_id', MON_ID);
           if (error) { console.error('Retrait échoué', error); montrerToast("Erreur, réessaie."); return; }
           await chargerBesoins();
+          afficherMonParcours();
           montrerToast("Tu t'es retiré de cette mission.");
         }
       });
@@ -2800,6 +2881,7 @@
             if (error.code !== '23505') { console.error('Inscription échouée', error); montrerToast("Erreur, réessaie."); return; }
           }
           await chargerBesoins();
+          afficherMonParcours();
           const bMaj = besoins.find(x => x.id === id);
           const reste = bMaj ? bMaj.cherche - bMaj.qui.length : 0;
           let msg;
@@ -3026,6 +3108,7 @@
      CRÉATION D'ÉVÉNEMENT
      =========================================================== */
   let typeEventChoisi = null;   // { type, emoji }
+  let eventEnEdition = null;    // id de l'événement en cours de modification (null = création)
   let prochainEventId = 1;
 
   /* Sélection d'un type d'événement (pré-remplit le nom si vide) */
@@ -3046,7 +3129,7 @@
       if (modeles.length) {
         apercu.style.display = 'block';
         apercu.innerHTML = `<div class="apercu-titre">✨ Besoins créés automatiquement :</div>` +
-          modeles.map(m => `<span class="apercu-puce">${iconeMission(m.nom)} ${m.nom}</span>`).join('');
+          modeles.map(m => `<span class="apercu-puce">${iconeMission(m.nom)} ${m.nom}${m.veille ? ' <em style="font-weight:600; opacity:.75;">(la veille)</em>' : ''}</span>`).join('');
       } else {
         apercu.style.display = 'none';
         apercu.innerHTML = '';
@@ -3054,8 +3137,46 @@
     })
   );
 
+  /* Ouvre le panneau en mode modification d'un événement existant */
+  function modifierEvenement(id) {
+    const ev = evenements.find(e => e.id === id);
+    if (!ev) return;
+
+    resetFormEvent();
+    eventEnEdition = id;
+
+    // Titre et bouton adaptés
+    document.getElementById('event-titre').textContent = "Modifier l'événement";
+    document.getElementById('btn-publier-event').textContent = "Enregistrer les modifications";
+
+    // Pré-remplissage
+    document.getElementById('fe-nom').value = ev.nom || '';
+    document.getElementById('fe-date').value = ev.dateISO || '';
+    document.getElementById('fe-heure').value = ev.heure || '';
+
+    // Re-sélectionne le type (sans déclencher la génération de besoins types)
+    if (ev.type) {
+      const btn = document.querySelector(`#types-event .modele[data-type="${ev.type}"]`);
+      if (btn) {
+        document.querySelectorAll('#types-event .modele').forEach(x => x.classList.remove('choisi'));
+        btn.classList.add('choisi');
+        typeEventChoisi = { type: ev.type, emoji: btn.dataset.emoji };
+      }
+    }
+    // En modification, on ne recrée pas les besoins types : on masque l'aperçu
+    const apercu = document.getElementById('apercu-besoins-types');
+    if (apercu) { apercu.style.display = 'none'; apercu.innerHTML = ''; }
+
+    fermerTout();
+    voile.classList.add('ouvert');
+    panneauEvent.classList.add('ouvert');
+  }
+
   function resetFormEvent() {
     typeEventChoisi = null;
+    eventEnEdition = null;
+    document.getElementById('event-titre').textContent = "Nouvel événement";
+    document.getElementById('btn-publier-event').textContent = "Créer l'événement";
     document.querySelectorAll('#types-event .modele').forEach(x => x.classList.remove('choisi'));
     const apercu = document.getElementById('apercu-besoins-types');
     if (apercu) { apercu.style.display = 'none'; apercu.innerHTML = ''; }
@@ -3229,6 +3350,7 @@
             <div class="ev-date">${dCap}${heure}</div>
           </div>
           <span class="ev-compte">${nb} coup${nb > 1 ? 's' : ''} de main</span>
+          ${peutGererPole(ev.pole) ? `<button class="ev-suppr" onclick="modifierEvenement('${ev.id}')" title="Modifier l'événement">✏️</button>` : ''}
           ${peutGererPole(ev.pole) ? `<button class="ev-suppr" onclick="supprimerEvenement('${ev.id}')" title="Supprimer l'événement">✕</button>` : ''}
         </div>`;
     }).join('');
@@ -3273,7 +3395,10 @@
       { nom: "Table de marque",        pole: "sportif",      duree: "2 h",   cherche: 2 },
       { nom: "Responsable de salle",   pole: "evenementiel", duree: "2 h",   cherche: 1 },
       { nom: "Tenir la buvette",       pole: "evenementiel", duree: "2 h",   cherche: 2 },
-      { nom: "Feuille de match",       pole: "sportif",      duree: "5 min", cherche: 1 },
+      // La feuille de match se prépare la VEILLE (mise à jour de la base licenciés)
+      { nom: "Mise à jour feuilles de match (ordinateur)", pole: "sportif", duree: "30 min", cherche: 1,
+        veille: true,
+        precisions: "À faire la veille du match : téléchargement des feuilles de match sur l'ordinateur du club. En début de saison, prévoir 30 min — la mise à jour de la base des licenciés prend du temps." },
     ],
     tournoi: [
       { nom: "Tenir la buvette",       pole: "evenementiel", duree: "3 h", cherche: 3 },
@@ -3311,6 +3436,38 @@
     const type = typeEventChoisi ? typeEventChoisi.type : null;
     const emoji = typeEventChoisi ? typeEventChoisi.emoji : "📅";
 
+    // ─── MODIFICATION d'un événement existant ───
+    if (eventEnEdition) {
+      const ancienne = (evenements.find(e => e.id === eventEnEdition) || {}).dateISO;
+
+      const { error } = await sb.from('evenements')
+        .update({ nom, type, emoji, date_iso: dateISO, heure: heure || null })
+        .eq('id', eventEnEdition);
+      if (error) { console.error('Modification événement échouée', error); montrerToast("Erreur : événement non modifié."); return; }
+
+      // Si la date a changé, on décale les besoins de l'événement d'autant
+      if (ancienne && ancienne !== dateISO) {
+        const decale = (iso, veille) => {
+          const d = new Date(dateISO + 'T12:00:00');
+          if (veille) d.setDate(d.getDate() - 1);
+          return d.toISOString().slice(0, 10);
+        };
+        const lies = besoins.filter(b => b.event === eventEnEdition);
+        for (const b of lies) {
+          // Un besoin daté la veille de l'ancienne date reste "la veille" de la nouvelle
+          const etaitVeille = b.dateISO && b.dateISO < ancienne;
+          await sb.from('besoins').update({ date_iso: decale(dateISO, etaitVeille) }).eq('id', b.id);
+        }
+      }
+
+      resetFormEvent();
+      fermerTout();
+      await chargerEvenements();
+      await chargerBesoins();
+      montrerToast("Événement mis à jour ✏️");
+      return;
+    }
+
     // 1) Crée l'événement dans Supabase et récupère son id
     const { data: evData, error: evErr } = await sb.from('evenements')
       .insert({
@@ -3325,9 +3482,18 @@
     // 2) Crée les besoins types associés — visibilité HÉRITÉE de l'événement
     const modeles = (type && besoinsTypesParEvent[type]) ? besoinsTypesParEvent[type] : [];
     if (modeles.length) {
+      // Certains besoins (ex : feuille de match) se préparent la VEILLE de l'événement
+      const dateVeille = (iso) => {
+        const d = new Date(iso + 'T12:00:00');
+        d.setDate(d.getDate() - 1);
+        return d.toISOString().slice(0, 10);
+      };
       const lignes = modeles.map(m => ({
-        nom: m.nom, pole: m.pole, date_iso: dateISO, duree: m.duree,
-        cherche: m.cherche, urgence_forcee: null, precisions: "",
+        nom: m.nom, pole: m.pole,
+        date_iso: m.veille ? dateVeille(dateISO) : dateISO,
+        duree: m.duree,
+        cherche: m.cherche, urgence_forcee: null,
+        precisions: m.precisions || "",
         evenement_id: evId,
         visibilite: vis.visibilite, visibilite_cible: vis.cible,
       }));
@@ -3386,10 +3552,12 @@
     const zone = document.getElementById('liste-membres');
     if (!zone) return;
 
-    let liste = comptesDemo.filter(c => c.statut === 'valide');
+    // Le filtre "inactif" montre les comptes désactivés ; sinon on montre les actifs
+    const veutInactifs = filtreRoleMembre === 'inactif';
+    let liste = comptesDemo.filter(c => veutInactifs ? c.statut === 'inactif' : c.statut === 'valide');
 
-    // Filtre par rôle
-    if (filtreRoleMembre !== 'tous') liste = liste.filter(c => c.role === filtreRoleMembre);
+    // Filtre par rôle (sauf si on regarde les inactifs)
+    if (!veutInactifs && filtreRoleMembre !== 'tous') liste = liste.filter(c => c.role === filtreRoleMembre);
 
     // Recherche (prénom, nom, identifiant)
     if (rechercheMembre) {
@@ -3401,11 +3569,12 @@
       );
     }
 
-    // Tri alphabétique par prénom
     liste.sort((a, b) => (a.prenom || '').localeCompare(b.prenom || ''));
 
     if (!liste.length) {
-      zone.innerHTML = `<p class="admin-vide">${rechercheMembre ? 'Aucun membre ne correspond.' : 'Aucun membre.'}</p>`;
+      const msg = veutInactifs ? 'Aucun membre désactivé.'
+                : rechercheMembre ? 'Aucun membre ne correspond.' : 'Aucun membre.';
+      zone.innerHTML = `<p class="admin-vide">${msg}</p>`;
       return;
     }
 
@@ -3415,9 +3584,28 @@
     const libelleRole = { webmaster: 'Webmaster', responsable: 'Responsable', benevole: 'Bénévole' };
 
     zone.innerHTML = liste.map(c => {
-      const badge = c.role !== 'benevole'
-        ? `<span class="mb-badge ${c.role}">${libelleRole[c.role]}</span>` : '';
+      const inactif = c.statut === 'inactif';
+      const badge = inactif
+        ? `<span class="mb-badge inactif">Inactif</span>`
+        : (c.role !== 'benevole' ? `<span class="mb-badge ${c.role}">${libelleRole[c.role]}</span>` : '');
       const poleNom = c.pole ? (LABELS_POLE[c.pole] || c.pole) : null;
+
+      // Un compte inactif : on propose seulement de le réactiver
+      if (inactif) {
+        return `
+          <div class="membre-carte estompe" id="membre-${c.identifiant}">
+            <div class="membre-tete">
+              <div class="mb-avatar" style="background:${couleurAvatar(c.prenom + (c.nom || ''))};">${initiales(c)}</div>
+              <div class="mb-titre">
+                <div class="mb-nom">${c.prenom} ${c.nom || ''}</div>
+                <div class="mb-sous">${c.identifiant}</div>
+              </div>
+              ${badge}
+              <button class="mb-btn" onclick="reactiverMembre('${c.identifiant}')" title="Réactiver">↩️</button>
+            </div>
+          </div>`;
+      }
+
       return `
         <div class="membre-carte" id="membre-${c.identifiant}">
           <div class="membre-tete">
@@ -3450,10 +3638,44 @@
             <div class="mb-actions">
               <button onclick="reinitPinMembre('${c.identifiant}')">🔑 Reset PIN</button>
               <button onclick="reinitIdentifiantMembre('${c.identifiant}')">✏️ Identifiant</button>
+              <button class="danger" onclick="desactiverMembre('${c.identifiant}')">💤 Désactiver</button>
             </div>
           </div>
         </div>`;
     }).join('');
+  }
+
+  /* Désactive un compte : la personne ne peut plus se connecter, mais son historique reste */
+  function desactiverMembre(id) {
+    const c = comptesDemo.find(x => x.identifiant === id);
+    if (!c) return;
+    if (c.id === MON_ID) { montrerToast("Tu ne peux pas te désactiver toi-même."); return; }
+    ouvrirModale({
+      emoji: "💤",
+      titre: `Désactiver ${c.prenom} ?`,
+      texte: `${c.prenom} ne pourra plus se connecter et n'apparaîtra plus dans les listes. Son historique de coups de main est conservé. Tu pourras le réactiver quand tu veux.`,
+      labelOk: "Oui, désactiver",
+      styleOk: "danger",
+      labelNon: "Annuler",
+      onOk: async () => {
+        const { error } = await sb.from('membres').update({ statut: 'inactif' }).eq('identifiant', id);
+        if (error) { console.error('Désactivation échouée', error); montrerToast("Erreur, réessaie."); return; }
+        c.statut = 'inactif';
+        afficherMembresAdmin();
+        montrerToast(`${c.prenom} est désactivé 💤`);
+      }
+    });
+  }
+
+  /* Réactive un compte désactivé */
+  async function reactiverMembre(id) {
+    const c = comptesDemo.find(x => x.identifiant === id);
+    if (!c) return;
+    const { error } = await sb.from('membres').update({ statut: 'valide' }).eq('identifiant', id);
+    if (error) { console.error('Réactivation échouée', error); montrerToast("Erreur, réessaie."); return; }
+    c.statut = 'valide';
+    afficherMembresAdmin();
+    montrerToast(`${c.prenom} est réactivé ✅`);
   }
 
   /* Déplie / replie l'édition d'un membre */
@@ -4104,6 +4326,7 @@
       await chargerEvenements();
       await chargerBesoins();
       await chargerAnnonces();
+      await afficherMonParcours();
     })();
   }
 
@@ -4232,6 +4455,11 @@
     }
     if (membre.statut === "refuse") {
       err.textContent = "Ton inscription n'a pas été acceptée. Contacte le club.";
+      err.classList.add('visible');
+      return;
+    }
+    if (membre.statut === "inactif") {
+      err.textContent = "Ton compte est désactivé. Contacte un responsable du club.";
       err.classList.add('visible');
       return;
     }
