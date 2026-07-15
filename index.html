@@ -1798,6 +1798,161 @@
   .cdm-event-auteur:hover { color: var(--sapin); }
 
 
+  /* ============================================================
+     V2 — PROFIL ACCORDÉON
+     ============================================================ */
+  .profil-header {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--grad-carte); border: 1px solid var(--bordure);
+    border-radius: var(--r-lg); padding: 16px 18px;
+    box-shadow: var(--ombre); margin-bottom: 16px;
+  }
+  .profil-avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--vert-tres-clair); border: 2px solid #c6e6d1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800; color: var(--sapin); flex: 0 0 auto;
+  }
+  .profil-header-infos { flex: 1; min-width: 0; }
+  .profil-header-nom { font-size: 17px; font-weight: 800; color: var(--sapin); letter-spacing: -.3px; }
+  .profil-header-role { font-size: 13px; color: var(--gris-texte); margin-top: 3px; font-weight: 600; }
+  .profil-header-badge { font-size: 26px; flex: 0 0 auto; }
+
+  .profil-accordeon { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+
+  .pa-item {
+    background: var(--grad-carte); border: 1px solid var(--bordure);
+    border-radius: var(--r-lg); overflow: hidden;
+    box-shadow: var(--ombre);
+    transition: box-shadow var(--t);
+  }
+  .pa-item.ouvert { box-shadow: var(--ombre-md); }
+
+  .pa-entete {
+    display: flex; align-items: center; gap: 12px;
+    padding: 15px 18px; cursor: pointer;
+    transition: background var(--t-fast);
+    user-select: none;
+  }
+  .pa-entete:hover { background: var(--fond); }
+  .pa-ico { font-size: 20px; flex: 0 0 auto; }
+  .pa-label { flex: 1; font-size: 15px; font-weight: 800; color: var(--sapin); letter-spacing: -.2px; }
+  .pa-badge {
+    font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px;
+    background: #fde7e2; color: #a5251b; flex: 0 0 auto;
+  }
+  .pa-fleche {
+    font-size: 13px; color: var(--gris-doux); flex: 0 0 auto;
+    transition: transform .25s var(--ease);
+  }
+  .pa-item.ouvert .pa-fleche { transform: rotate(90deg); }
+
+  .pa-corps {
+    display: none; padding: 0 18px 18px;
+    border-top: 1px solid var(--bordure);
+    animation: apparait .2s var(--ease);
+  }
+  .pa-item.ouvert .pa-corps { display: block; }
+  .pa-corps > *:first-child { margin-top: 14px; }
+
+  .btn-deco-v2 {
+    width: 100%; padding: 14px; border: 1.5px solid #f3c7be;
+    background: transparent; border-radius: var(--r-lg);
+    font-size: 15px; font-weight: 800; font-family: var(--police);
+    color: #b91c1c; cursor: pointer;
+    transition: background var(--t-fast), border-color var(--t-fast);
+  }
+  .btn-deco-v2:hover { background: #fde7e2; border-color: #e0533b; }
+
+
+  /* ============================================================
+     V2 — GROUPES
+     ============================================================ */
+  .groupe-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
+    background: #e8f0fe; color: #1a56db; margin-top: 4px;
+  }
+  /* Gestion groupes dans admin */
+  .groupe-carte {
+    background: var(--grad-carte); border: 1px solid var(--bordure);
+    border-radius: var(--r-lg); padding: 14px 16px; margin-bottom: 8px;
+    box-shadow: var(--ombre);
+  }
+  .groupe-carte-haut { display: flex; align-items: center; gap: 10px; }
+  .groupe-carte-nom { flex: 1; font-size: 15px; font-weight: 800; color: var(--sapin); }
+  .groupe-carte-pole { font-size: 11px; color: var(--gris-doux); font-weight: 700; }
+  .groupe-carte-actions { display: flex; gap: 6px; }
+  .groupe-btn-sm {
+    border: 1px solid var(--bordure); background: var(--fond);
+    border-radius: 8px; padding: 4px 10px; font-size: 13px;
+    cursor: pointer; font-family: var(--police);
+    transition: background var(--t-fast);
+  }
+  .groupe-btn-sm:hover { background: var(--fond-2); }
+  .groupe-btn-sm.danger:hover { background: #fde7e2; border-color: #f3c7be; }
+  .groupe-membres-liste {
+    margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .groupe-membre-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+    background: var(--fond-2); color: var(--texte); border: 1px solid var(--bordure);
+  }
+  .groupe-membre-tag button {
+    border: none; background: none; color: var(--gris-doux); cursor: pointer;
+    font-size: 13px; padding: 0; line-height: 1;
+    transition: color var(--t-fast);
+  }
+  .groupe-membre-tag button:hover { color: #b91c1c; }
+  .groupe-ajouter-membre {
+    display: flex; gap: 8px; margin-top: 10px; align-items: center;
+  }
+  .groupe-ajouter-membre select {
+    flex: 1; padding: 9px 12px; border: 1.5px solid var(--bordure);
+    border-radius: var(--r-sm); font-size: 14px; font-family: var(--police);
+    background: var(--fond); color: var(--texte);
+  }
+  .groupe-ajouter-membre button {
+    padding: 9px 14px; background: var(--vert); color: #fff; border: none;
+    border-radius: var(--r-sm); font-size: 14px; font-weight: 800;
+    font-family: var(--police); cursor: pointer;
+    transition: filter var(--t-fast);
+  }
+  .groupe-ajouter-membre button:hover { filter: brightness(1.08); }
+
+
+  /* ============================================================
+     V2 — PARTICIPATIONS (réunions)
+     ============================================================ */
+  .ev-a-participation {
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--bordure);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .btn-participe {
+    flex: 1; padding: 10px 14px; border-radius: var(--r);
+    font-size: 14px; font-weight: 800; font-family: var(--police);
+    cursor: pointer; border: 1.5px solid var(--bordure);
+    transition: background var(--t-fast), border-color var(--t-fast), transform var(--t-fast);
+  }
+  .btn-participe:hover { transform: translateY(-1px); }
+  .btn-participe:active { transform: scale(.985); }
+  .btn-participe.absent {
+    background: var(--fond); color: var(--sapin);
+    border-color: var(--vert);
+  }
+  .btn-participe.absent:hover { background: var(--vert-tres-clair); }
+  .btn-participe.present {
+    background: var(--vert); color: #fff;
+    border-color: var(--vert);
+  }
+  .btn-participe.present:hover { background: #15803d; border-color: #15803d; }
+  .ev-a-nb-participants {
+    font-size: 12px; font-weight: 700; color: var(--gris-texte);
+    white-space: nowrap;
+  }
+
 </style>
 </head>
 <body>
@@ -2018,139 +2173,186 @@
       </div>
 
       <section class="ecran" data-ecran="profil">
-        <h1 class="titre-ecran">Profil</h1>
-        <p class="sous-titre">Tes infos.</p>
 
-        <div class="carte-role">
-          <div class="txt">
-            <strong id="profil-prenom">—</strong>
-            <span id="profil-role-lbl">Bénévole</span>
+        <!-- En-tête identité -->
+        <div class="profil-header">
+          <div class="profil-avatar" id="profil-avatar">?</div>
+          <div class="profil-header-infos">
+            <div class="profil-header-nom" id="profil-prenom">—</div>
+            <div class="profil-header-role" id="profil-role-lbl">Bénévole</div>
           </div>
-          <span class="badge-role" id="profil-role-badge">🙌</span>
+          <span class="profil-header-badge" id="profil-role-badge">🙌</span>
         </div>
 
-        <div id="mon-parcours"><!-- rempli par JS --></div>
+        <!-- Accordéon -->
+        <div class="profil-accordeon" id="profil-accordeon">
 
-        <div id="zone-demandes" style="display:none; margin-top:8px;">
-          <div class="section-titre" style="margin-top:8px;">Demandes d'inscription</div>
-          <div id="liste-demandes"><!-- rempli par JS --></div>
-        </div>
-
-        <div id="zone-annonces-gestion" style="display:none; margin-top:8px;">
-          <div class="section-titre" style="margin-top:8px;">Message d'accueil du club</div>
-          <button class="btn-creer-event" id="btn-creer-annonce" style="margin-bottom:14px;">＋ Publier un message</button>
-
-          <div id="form-annonce" style="display:none;">
-            <div class="cx-champ"><label for="an-titre">Titre</label><input id="an-titre" type="text" placeholder="Tournoi ce week-end !" /></div>
-            <div class="cx-champ"><label for="an-texte">Message</label><input id="an-texte" type="text" placeholder="On a besoin de monde à la buvette samedi." /></div>
-            <div class="cx-champ">
-              <label for="an-niveau">Importance</label>
-              <select id="an-niveau">
-                <option value="info">🔵 Info</option>
-                <option value="urgent">🔴 Urgent</option>
-              </select>
+          <!-- Mon parcours -->
+          <div class="pa-item" data-pa="parcours">
+            <div class="pa-entete" onclick="basculerPA('parcours')">
+              <span class="pa-ico">⭐</span>
+              <span class="pa-label">Mon parcours</span>
+              <span class="pa-fleche">›</span>
             </div>
-            <div class="cx-erreur" id="an-erreur"></div>
-            <button class="btn-publier" id="an-publier">Publier</button>
-            <button class="cx-lien" id="an-annuler">Annuler</button>
+            <div class="pa-corps">
+              <div id="mon-parcours"><!-- rempli par JS --></div>
+            </div>
           </div>
 
-          <div id="liste-annonces-gestion"><!-- rempli par JS --></div>
-        </div>
-
-        <div id="zone-admin" style="display:none; margin-top:8px;">
-          <div class="section-titre" style="margin-top:8px;">Administration</div>
-
-          <!-- Onglets : Membres / Pôles -->
-          <div class="admin-onglets">
-            <button class="admin-onglet actif" data-admin="membres">👥 Membres</button>
-            <button class="admin-onglet" data-admin="poles">🎯 Pôles</button>
-          </div>
-
-          <!-- ===== Onglet MEMBRES ===== -->
-          <div class="admin-vue actif" data-vue="membres">
-            <button class="btn-creer-event" id="btn-creer-compte" style="margin-bottom:14px;">＋ Créer un compte</button>
-
-            <div id="form-compte" style="display:none;">
-              <div class="cx-champ"><label for="a-prenom">Prénom</label><input id="a-prenom" type="text" placeholder="Jean" /></div>
-              <div class="cx-champ"><label for="a-nom">Nom</label><input id="a-nom" type="text" placeholder="Dupont" /></div>
-              <div class="cx-champ"><label for="a-id">Identifiant</label><input id="a-id" type="text" placeholder="jean.president" autocapitalize="none" /></div>
-              <div class="cx-champ">
-                <label for="a-role">Rôle</label>
-                <select id="a-role">
-                  <option value="benevole">Bénévole</option>
-                  <option value="responsable">Responsable</option>
-                  <option value="webmaster">Webmaster</option>
-                </select>
-              </div>
-              <div class="cx-champ">
-                <label for="a-pole">Pôle de rattachement</label>
-                <select id="a-pole"><option value="">— aucun —</option></select>
-              </div>
-              <div class="cx-champ">
-                <label for="a-fonction">Fonction (facultatif)</label>
-                <input id="a-fonction" type="text" placeholder="Ex : Trésorière adjointe" />
-              </div>
-              <div class="cx-erreur" id="a-erreur"></div>
-              <button class="btn-publier" id="a-creer">Créer le compte</button>
-              <button class="cx-lien" id="a-annuler">Annuler</button>
-              <p class="sous-titre" style="font-size:12px; margin-top:6px;">La personne choisira son code PIN à sa première connexion.</p>
+          <!-- Mes coordonnées -->
+          <div class="pa-item" data-pa="coords">
+            <div class="pa-entete" onclick="basculerPA('coords')">
+              <span class="pa-ico">📞</span>
+              <span class="pa-label">Mes coordonnées</span>
+              <span class="pa-fleche">›</span>
             </div>
-
-            <input type="text" id="recherche-membre" class="recherche-champ"
-                   placeholder="🔍 Rechercher un membre…" autocomplete="off" />
-
-            <div class="filtres-membres" id="filtres-membres">
-              <button class="fm actif" data-role="tous">Tous</button>
-              <button class="fm" data-role="webmaster">Webmasters</button>
-              <button class="fm" data-role="responsable">Responsables</button>
-              <button class="fm" data-role="benevole">Bénévoles</button>
-              <button class="fm" data-role="inactif">💤 Inactifs</button>
-            </div>
-
-            <div id="liste-membres"><!-- rempli par JS --></div>
-          </div>
-
-          <!-- ===== Onglet PÔLES ===== -->
-          <div class="admin-vue" data-vue="poles">
-            <button class="btn-creer-event" id="btn-ajouter-pole" style="margin-bottom:14px;">＋ Ajouter un pôle</button>
-
-            <div id="form-pole" style="display:none;">
-              <div class="duo" style="display:flex; gap:8px; align-items:flex-end;">
-                <div class="cx-champ" style="flex:1 1 35%;">
-                  <label for="p-code">Code</label>
-                  <input id="p-code" type="text" placeholder="sponsors" autocapitalize="none" />
+            <div class="pa-corps">
+              <div class="coords-form">
+                <div class="coords-champ">
+                  <label for="coords-tel">Téléphone</label>
+                  <input id="coords-tel" type="tel" placeholder="06 12 34 56 78" autocomplete="tel" />
                 </div>
-                <div class="cx-champ" style="flex:1 1 65%;">
-                  <label for="p-libelle">Libellé</label>
-                  <input id="p-libelle" type="text" placeholder="Pôle sponsors" />
+                <div class="coords-champ">
+                  <label for="coords-email">Email</label>
+                  <input id="coords-email" type="email" placeholder="prenom@exemple.fr" autocomplete="email" />
                 </div>
+                <button class="btn-coords-save" id="btn-coords-save">Enregistrer</button>
+                <p class="coords-note">Tes coordonnées sont visibles par les autres membres pour faciliter la coordination.</p>
               </div>
-              <button class="btn-publier" id="p-ajouter">Ajouter le pôle</button>
-              <button class="cx-lien" id="p-annuler">Annuler</button>
-              <p class="sous-titre" style="font-size:12px; margin-top:6px;">Le code est un identifiant court en minuscules (ex : <em>sponsors</em>). Le libellé est ce qui s'affiche.</p>
             </div>
-
-            <div id="liste-poles"><!-- rempli par JS --></div>
           </div>
-        </div>
 
-        <!-- ===== Mes coordonnées ===== -->
-        <div class="section-titre" style="margin-top:8px;">Mes coordonnées</div>
-        <div class="coords-form">
-          <div class="coords-champ">
-            <label for="coords-tel">Téléphone</label>
-            <input id="coords-tel" type="tel" placeholder="06 12 34 56 78" autocomplete="tel" />
+          <!-- Demandes d'inscription (responsables+) -->
+          <div class="pa-item" data-pa="demandes" id="zone-demandes" style="display:none;">
+            <div class="pa-entete" onclick="basculerPA('demandes')">
+              <span class="pa-ico">📋</span>
+              <span class="pa-label">Demandes d'inscription</span>
+              <span class="pa-badge" id="badge-demandes" style="display:none;">0</span>
+              <span class="pa-fleche">›</span>
+            </div>
+            <div class="pa-corps">
+              <div id="liste-demandes"><!-- rempli par JS --></div>
+            </div>
           </div>
-          <div class="coords-champ">
-            <label for="coords-email">Email</label>
-            <input id="coords-email" type="email" placeholder="prenom@exemple.fr" autocomplete="email" />
-          </div>
-          <button class="btn-coords-save" id="btn-coords-save">Enregistrer mes coordonnées</button>
-          <p class="coords-note">Tes coordonnées sont visibles par les autres membres du club pour faciliter la coordination.</p>
-        </div>
 
-        <button class="btn-deco" id="btn-deco">Se déconnecter</button>
+          <!-- Annonces (responsables+) -->
+          <div class="pa-item" data-pa="annonces" id="zone-annonces-gestion" style="display:none;">
+            <div class="pa-entete" onclick="basculerPA('annonces')">
+              <span class="pa-ico">📢</span>
+              <span class="pa-label">Annonces du club</span>
+              <span class="pa-fleche">›</span>
+            </div>
+            <div class="pa-corps">
+              <button class="btn-creer-event" id="btn-creer-annonce" style="margin-bottom:14px;">＋ Publier un message</button>
+              <div id="form-annonce" style="display:none;">
+                <div class="cx-champ"><label for="an-titre">Titre</label><input id="an-titre" type="text" placeholder="Tournoi ce week-end !" /></div>
+                <div class="cx-champ"><label for="an-texte">Message</label><input id="an-texte" type="text" placeholder="On a besoin de monde à la buvette samedi." /></div>
+                <div class="cx-champ">
+                  <label for="an-niveau">Importance</label>
+                  <select id="an-niveau">
+                    <option value="info">🔵 Info</option>
+                    <option value="urgent">🔴 Urgent</option>
+                  </select>
+                </div>
+                <div class="cx-erreur" id="an-erreur"></div>
+                <button class="btn-publier" id="an-publier">Publier</button>
+                <button class="cx-lien" id="an-annuler">Annuler</button>
+              </div>
+              <div id="liste-annonces-gestion"><!-- rempli par JS --></div>
+            </div>
+          </div>
+
+          <!-- Administration (webmaster) -->
+          <div class="pa-item" data-pa="admin" id="zone-admin" style="display:none;">
+            <div class="pa-entete" onclick="basculerPA('admin')">
+              <span class="pa-ico">⚙️</span>
+              <span class="pa-label">Administration</span>
+              <span class="pa-fleche">›</span>
+            </div>
+            <div class="pa-corps">
+              <div class="admin-onglets">
+                <button class="admin-onglet actif" data-admin="membres">👥 Membres</button>
+                <button class="admin-onglet" data-admin="poles">🎯 Pôles</button>
+                <button class="admin-onglet" data-admin="groupes">🫂 Groupes</button>
+              </div>
+              <div class="admin-vue actif" data-vue="membres">
+                <button class="btn-creer-event" id="btn-creer-compte" style="margin-bottom:14px;">＋ Créer un compte</button>
+                <div id="form-compte" style="display:none;">
+                  <div class="cx-champ"><label for="a-prenom">Prénom</label><input id="a-prenom" type="text" placeholder="Jean" /></div>
+                  <div class="cx-champ"><label for="a-nom">Nom</label><input id="a-nom" type="text" placeholder="Dupont" /></div>
+                  <div class="cx-champ"><label for="a-id">Identifiant</label><input id="a-id" type="text" placeholder="jean.president" autocapitalize="none" /></div>
+                  <div class="cx-champ">
+                    <label for="a-role">Rôle</label>
+                    <select id="a-role">
+                      <option value="benevole">Bénévole</option>
+                      <option value="responsable">Responsable</option>
+                      <option value="webmaster">Webmaster</option>
+                    </select>
+                  </div>
+                  <div class="cx-champ">
+                    <label for="a-pole">Pôle de rattachement</label>
+                    <select id="a-pole"><option value="">— aucun —</option></select>
+                  </div>
+                  <div class="cx-champ">
+                    <label for="a-fonction">Fonction (facultatif)</label>
+                    <input id="a-fonction" type="text" placeholder="Ex : Trésorière adjointe" />
+                  </div>
+                  <div class="cx-erreur" id="a-erreur"></div>
+                  <button class="btn-publier" id="a-creer">Créer le compte</button>
+                  <button class="cx-lien" id="a-annuler">Annuler</button>
+                  <p class="sous-titre" style="font-size:12px; margin-top:6px;">La personne choisira son code PIN à sa première connexion.</p>
+                </div>
+                <input type="text" id="recherche-membre" class="recherche-champ" placeholder="🔍 Rechercher un membre…" autocomplete="off" />
+                <div class="filtres-membres" id="filtres-membres">
+                  <button class="fm actif" data-role="tous">Tous</button>
+                  <button class="fm" data-role="webmaster">Webmasters</button>
+                  <button class="fm" data-role="responsable">Responsables</button>
+                  <button class="fm" data-role="benevole">Bénévoles</button>
+                  <button class="fm" data-role="inactif">💤 Inactifs</button>
+                </div>
+                <div id="liste-membres"><!-- rempli par JS --></div>
+              </div>
+              <div class="admin-vue" data-vue="poles">
+                <button class="btn-creer-event" id="btn-ajouter-pole" style="margin-bottom:14px;">＋ Ajouter un pôle</button>
+                <div id="form-pole" style="display:none;">
+                  <div class="duo" style="display:flex; gap:8px; align-items:flex-end;">
+                    <div class="cx-champ" style="flex:1 1 35%;"><label for="p-code">Code</label><input id="p-code" type="text" placeholder="sponsors" autocapitalize="none" /></div>
+                    <div class="cx-champ" style="flex:1 1 65%;"><label for="p-libelle">Libellé</label><input id="p-libelle" type="text" placeholder="Pôle sponsors" /></div>
+                  </div>
+                  <button class="btn-publier" id="p-ajouter">Ajouter le pôle</button>
+                  <button class="cx-lien" id="p-annuler">Annuler</button>
+                  <p class="sous-titre" style="font-size:12px; margin-top:6px;">Le code est un identifiant court en minuscules (ex : <em>sponsors</em>).</p>
+                </div>
+                <div id="liste-poles"><!-- rempli par JS --></div>
+              </div>
+
+              <!-- ===== Onglet GROUPES ===== -->
+              <div class="admin-vue" data-vue="groupes">
+                <button class="btn-creer-event" id="btn-ajouter-groupe" style="margin-bottom:14px;">＋ Créer un groupe</button>
+
+                <div id="form-groupe" style="display:none;">
+                  <div class="cx-champ">
+                    <label for="g-nom">Nom du groupe</label>
+                    <input id="g-nom" type="text" placeholder="Buvette, Table de marque…" />
+                  </div>
+                  <div class="cx-champ">
+                    <label for="g-pole">Pôle associé</label>
+                    <select id="g-pole"><option value="">— aucun —</option></select>
+                  </div>
+                  <button class="btn-publier" id="g-creer">Créer le groupe</button>
+                  <button class="cx-lien" id="g-annuler">Annuler</button>
+                </div>
+
+                <div id="liste-groupes"><!-- rempli par JS --></div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- fin accordéon -->
+
+        <!-- Déconnexion -->
+        <button class="btn-deco-v2" id="btn-deco">Se déconnecter</button>
+
       </section>
 
     </main>
@@ -2251,6 +2453,14 @@
           <select id="f-event">
             <option value="">Aucun — coup de main libre</option>
           </select>
+        </div>
+
+        <div class="champ">
+          <label for="f-groupe">Réservé à un groupe ? <span style="font-weight:600; color:var(--gris-doux);">(facultatif)</span></label>
+          <select id="f-groupe">
+            <option value="">Ouvert à tous</option>
+          </select>
+          <p class="intro" style="font-size:12px;margin-top:6px;color:var(--gris-doux);">Si tu sélectionnes un groupe, seuls ses membres verront ce besoin.</p>
         </div>
       </div>
 
@@ -2533,6 +2743,10 @@
   /* Identité de l'utilisateur connecté (rempli à la connexion) */
   let MOI = "";          // prénom affiché
   let MON_ID = null;     // uuid du membre connecté (pour les inscriptions Supabase)
+  let groupes = [];      // cache des groupes
+  let participations = {}; // { evenement_id: [membre_id, ...] }
+  let groupeMembres = {}; // { groupe_id: [membre_id, ...] }
+  let MES_GROUPES = [];  // ids des groupes dont je fais partie
   let MON_IDENTIFIANT = "";  // identifiant courant (pour éditer)
   let MON_POLE = null;   // pôle de rattachement du membre (sportif|evenementiel|com|admin|null)
   let MON_BUREAU = false; // convié aux réunions de bureau ?
@@ -2586,6 +2800,8 @@
     if (!item) return true;
     if (estWebmaster()) return true;           // les webmasters voient tout
     if (peutGererPole(item.pole)) return true; // les gestionnaires du pôle voient tout
+    // Filtre groupe : si le besoin est réservé à un groupe, vérifier l'appartenance
+    if (item.groupeId && !estDansGroupe(item.groupeId)) return false;
     const vis = item.visibilite || 'tous';
     if (vis === 'tous') return true;
     if (vis === 'bureau') return !!MON_BUREAU;
@@ -2599,6 +2815,132 @@
   /* ------- Pôles dynamiques (table `poles` en base) ------- */
   /* Responsables et adjoints des pôles : { code: { responsable_id, adjoint_id } } */
   let RESP_POLE = {};
+
+  async function chargerParticipations() {
+    try {
+      const { data } = await sb.from('participations').select('evenement_id,membre_id');
+      participations = {};
+      (data || []).forEach(r => {
+        if (!participations[r.evenement_id]) participations[r.evenement_id] = [];
+        participations[r.evenement_id].push(r.membre_id);
+      });
+    } catch(e) {
+      console.warn('Chargement participations échoué', e?.message || e);
+    }
+  }
+
+  async function basculerParticipation(evId) {
+    const liste = participations[evId] || [];
+    const jeParticipe = liste.includes(MON_ID);
+    if (jeParticipe) {
+      const { error } = await sb.from('participations')
+        .delete().eq('evenement_id', evId).eq('membre_id', MON_ID);
+      if (error) { montrerToast('Erreur lors du retrait 😕'); return; }
+      participations[evId] = liste.filter(id => id !== MON_ID);
+      montrerToast('Tu es retiré de la réunion');
+    } else {
+      const { error } = await sb.from('participations')
+        .insert({ evenement_id: evId, membre_id: MON_ID });
+      if (error) { montrerToast('Erreur lors de l\'inscription 😕'); return; }
+      if (!participations[evId]) participations[evId] = [];
+      participations[evId].push(MON_ID);
+      montrerToast('Tu es inscrit à la réunion ✅');
+    }
+    afficherAccueilV2();
+  }
+
+  async function chargerGroupes() {
+    try {
+      const { data: gData } = await sb.from('groupes').select('*').order('nom');
+      const { data: gmData } = await sb.from('groupe_membres').select('groupe_id,membre_id');
+      groupes = gData || [];
+      groupeMembres = {};
+      (gmData || []).forEach(r => {
+        if (!groupeMembres[r.groupe_id]) groupeMembres[r.groupe_id] = [];
+        groupeMembres[r.groupe_id].push(r.membre_id);
+      });
+      MES_GROUPES = groupes.filter(g => (groupeMembres[g.id] || []).includes(MON_ID)).map(g => g.id);
+      rafraichirSelectGroupe();
+      afficherListeGroupes();
+    } catch(e) {
+      console.warn('Chargement groupes échoué', e?.message || e);
+    }
+  }
+
+  function estDansGroupe(groupeId) {
+    if (!groupeId) return true; // pas de groupe = visible par tous
+    if (estWebmaster()) return true;
+    return MES_GROUPES.includes(groupeId);
+  }
+
+  function rafraichirSelectGroupe() {
+    const sel = document.getElementById('f-groupe');
+    if (!sel) return;
+    const actuel = sel.value;
+    sel.innerHTML = '<option value="">Ouvert à tous</option>' +
+      groupes.map(g => '<option value="' + g.id + '">' + (g.emoji||'👥') + ' ' + g.nom + (g.pole ? ' (' + (LABELS_POLE[g.pole]||g.pole) + ')' : '') + '</option>').join('');
+    if (actuel) sel.value = actuel;
+  }
+
+  async function afficherListeGroupes() {
+    const zone = document.getElementById('liste-groupes');
+    if (!zone) return;
+    if (!groupes.length) {
+      zone.innerHTML = '<div class="vide"><div class="icone">🫂</div><p>Aucun groupe créé.</p></div>';
+      return;
+    }
+    zone.innerHTML = groupes.map(g => {
+      const membres = (groupeMembres[g.id] || []).map(mid => comptesDemo.find(c => c.id === mid)).filter(Boolean);
+      const membresTags = membres.map(m =>
+        '<span class="groupe-membre-tag">' + m.prenom + ' ' + m.nom +
+        '<button onclick="retirerDuGroupe(\"' + g.id + '\",\"' + m.id + '\")" title="Retirer">×</button></span>'
+      ).join('');
+      const optsMembres = comptesDemo
+        .filter(c => c.statut !== 'attente' && !(groupeMembres[g.id]||[]).includes(c.id))
+        .map(c => '<option value="' + c.id + '">' + c.prenom + ' ' + c.nom + '</option>').join('');
+      return '<div class="groupe-carte">' +
+        '<div class="groupe-carte-haut">' +
+        '<span style="font-size:20px;">' + (g.emoji||'👥') + '</span>' +
+        '<span class="groupe-carte-nom">' + g.nom + '</span>' +
+        (g.pole ? '<span class="groupe-carte-pole">' + (LABELS_POLE[g.pole]||g.pole) + '</span>' : '') +
+        '<div class="groupe-carte-actions">' +
+        '<button class="groupe-btn-sm danger" onclick="supprimerGroupe(\"' + g.id + '\")" title="Supprimer">🗑️</button>' +
+        '</div></div>' +
+        '<div class="groupe-membres-liste">' + (membresTags || '<span style="font-size:12px;color:var(--gris-doux);">Aucun membre</span>') + '</div>' +
+        '<div class="groupe-ajouter-membre">' +
+        '<select id="sel-add-' + g.id + '"><option value="">Ajouter un membre…</option>' + optsMembres + '</select>' +
+        '<button onclick="ajouterAuGroupe(\"' + g.id + '\")">＋</button>' +
+        '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  async function ajouterAuGroupe(groupeId) {
+    const sel = document.getElementById('sel-add-' + groupeId);
+    if (!sel || !sel.value) return;
+    const { error } = await sb.from('groupe_membres').insert({ groupe_id: groupeId, membre_id: sel.value });
+    if (error) { montrerToast('Erreur lors de l\'ajout'); return; }
+    await chargerGroupes();
+    montrerToast('Membre ajouté au groupe ✅');
+  }
+
+  async function retirerDuGroupe(groupeId, membreId) {
+    const { error } = await sb.from('groupe_membres').delete().eq('groupe_id', groupeId).eq('membre_id', membreId);
+    if (error) { montrerToast('Erreur lors du retrait'); return; }
+    await chargerGroupes();
+    montrerToast('Membre retiré du groupe');
+  }
+
+  async function supprimerGroupe(groupeId) {
+    const g = groupes.find(x => x.id === groupeId);
+    if (!g) return;
+    confirmer('Supprimer le groupe "' + g.nom + '" ?', '🗑️', async () => {
+      const { error } = await sb.from('groupes').delete().eq('id', groupeId);
+      if (error) { montrerToast('Erreur lors de la suppression'); return; }
+      await chargerGroupes();
+      montrerToast('Groupe supprimé');
+    });
+  }
 
   async function chargerPoles() {
     try {
@@ -2711,6 +3053,7 @@
       visibiliteCible: normCible(row.visibilite_cible),
       qui: noms,                                          // prénoms des inscrits
       jeParticipe: inscrits.some(i => i.membre_id === MON_ID),  // suis-je inscrit ? (par id)
+      groupeId: row.groupe_id || null,
     };
   }
 
@@ -3388,6 +3731,40 @@
   }
 
   /* ===========================================================
+     PROFIL — ACCORDÉON
+     =========================================================== */
+  function basculerPA(cle) {
+    const items = document.querySelectorAll('.pa-item');
+    items.forEach(item => {
+      if (item.dataset.pa === cle) {
+        item.classList.toggle('ouvert');
+      } else {
+        item.classList.remove('ouvert');
+      }
+    });
+  }
+
+  function majAvatarProfil(prenom, nom) {
+    const el = document.getElementById('profil-avatar');
+    if (!el) return;
+    const initiales = (prenom ? prenom[0] : '') + (nom ? nom[0] : '');
+    el.textContent = initiales.toUpperCase() || '?';
+  }
+
+  /* Badge demandes en attente */
+  function majBadgeDemandes() {
+    const en_attente = comptesDemo.filter(c => c.statut === 'attente').length;
+    const badge = document.getElementById('badge-demandes');
+    if (!badge) return;
+    if (en_attente > 0) {
+      badge.textContent = en_attente;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  /* ===========================================================
      MODALE FICHE CONTACT
      =========================================================== */
   const contactFond = document.getElementById('contact-fond');
@@ -3575,6 +3952,21 @@
       const auteurHtml = auteurAccueil && ev.createurId
         ? '<div class="ev-a-auteur">Créé par <span class="ev-a-auteur-lien" onclick="ouvrirContact(\"' + ev.createurId + '\")">' + auteurAccueil + '</span></div>'
         : '';
+      // Participation (réunions uniquement)
+      let participationHtml = '';
+      if (ev.type === 'reunion') {
+        const liste = participations[ev.id] || [];
+        const jeParticipe = liste.includes(MON_ID);
+        const nb = liste.length;
+        const nbLabel = nb === 0 ? 'Aucun participant' : nb + ' participant' + (nb > 1 ? 's' : '');
+        participationHtml = '<div class="ev-a-participation">' +
+          '<button class="btn-participe ' + (jeParticipe ? 'present' : 'absent') + '" ' +
+          'onclick="basculerParticipation(\"' + ev.id + '\")">' +
+          (jeParticipe ? '✓ Je participe' : '＋ Je participe') +
+          '</button>' +
+          '<span class="ev-a-nb-participants">👥 ' + nbLabel + '</span>' +
+          '</div>';
+      }
       return '<div class="ev-agenda ' + bCls + '">' +
         '<div class="ev-agenda-haut">' +
         '<div class="infos">' +
@@ -3583,6 +3975,7 @@
         auteurHtml +
         '</div>' + badgeHtml +
         '</div>' + actionsHtml +
+        participationHtml +
         '</div>';
     }).join('');
   }
@@ -4675,7 +5068,33 @@
   }
 
   /* Création d'un compte par le webmaster */
-  /* ── Onglets de l'administration (Membres / Pôles) ── */
+
+  /* ── Groupes ── */
+  document.getElementById('btn-ajouter-groupe').addEventListener('click', () => {
+    const fg = document.getElementById('form-groupe');
+    fg.style.display = fg.style.display === 'none' ? 'block' : 'none';
+    const selPole = document.getElementById('g-pole');
+    if (selPole) {
+      selPole.innerHTML = '<option value="">— aucun —</option>' +
+        TOUS_POLES.map(p => '<option value="' + p + '">' + (LABELS_POLE[p]||p) + '</option>').join('');
+    }
+  });
+  document.getElementById('g-creer').addEventListener('click', async () => {
+    const nom  = (document.getElementById('g-nom')?.value || '').trim();
+    const pole = document.getElementById('g-pole')?.value || null;
+    if (!nom) { montrerToast('Donne un nom au groupe 🙂'); return; }
+    const { error } = await sb.from('groupes').insert({ nom, pole, emoji: '👥' });
+    if (error) { console.error('Création groupe échouée', error); montrerToast('Erreur lors de la création'); return; }
+    document.getElementById('g-nom').value = '';
+    document.getElementById('form-groupe').style.display = 'none';
+    await chargerGroupes();
+    montrerToast('Groupe créé ✅');
+  });
+  document.getElementById('g-annuler').addEventListener('click', () => {
+    document.getElementById('form-groupe').style.display = 'none';
+  });
+
+  /* ── Onglets de l'administration (Membres / Pôles / Groupes) ── */
   document.querySelectorAll('.admin-onglet').forEach(btn =>
     btn.addEventListener('click', () => {
       const cible = btn.dataset.admin;
@@ -5076,6 +5495,7 @@
     const ev = evenements.find(e => e.id === event);
     const dateFinale = ev ? ev.dateISO : (dateISO || null);
 
+    const groupeId = document.getElementById('f-groupe')?.value || null;
     const ligne = {
       nom, pole,
       date_iso: dateFinale,
@@ -5087,6 +5507,7 @@
       responsable_id: respId,
       visibilite: vis.visibilite,
       visibilite_cible: vis.cible,
+      groupe_id: groupeId || null,
     };
 
     if (besoinEnEdition !== null) {
@@ -5216,6 +5637,7 @@
     let { data, error } = await sb.from('membres').select('*');
     if (error) { console.error('Chargement membres échoué', error); return; }
     comptesDemo = data.map(ligneVersMembre);
+    majBadgeDemandes();
     // Seed initial des responsables si besoin, puis rechargement
     // (seederResponsables désactivé : les comptes existent déjà en base.
     //  Cette fonction créait des doublons à chaque démarrage.)
@@ -5248,6 +5670,7 @@
     const _h = new Date().getHours();
     const _ph = _h < 12 ? 'Bonne matinée !' : _h < 18 ? 'Bonne journée !' : 'Bonne soirée !';
     document.getElementById('accueil-phrase').textContent = _ph + ' Voici ce qui se passe au club.';
+    majAvatarProfil(membre.prenom, membre.nom);
     roleActuel = membre.role || 'benevole';
 
 
@@ -5270,6 +5693,8 @@
       await chargerEvenements();
       await chargerBesoins();   // ← appellera afficherAccueilV2() une fois les deux chargés
       await chargerAnnonces();
+      await chargerGroupes();
+      await chargerParticipations();
       await afficherMonParcours();
       // Pré-remplir les champs coordonnées
       const moi = comptesDemo.find(c => c.id === MON_ID);
