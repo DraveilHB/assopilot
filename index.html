@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#16A34A" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="AssoPilot" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 <title>AssoPilot</title>
 <!-- Bibliothèque Supabase (chargée depuis le CDN officiel) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1953,6 +1961,34 @@
     white-space: nowrap;
   }
 
+  /* ============================================================
+     PWA — BANNIÈRE INSTALLATION
+     ============================================================ */
+  .pwa-banner {
+    display: none;
+    background: linear-gradient(135deg, #15321F 0%, #16A34A 100%);
+    color: #fff; border-radius: var(--r-lg);
+    padding: 14px 16px; margin-bottom: 12px;
+    box-shadow: var(--ombre-vert);
+    align-items: center; gap: 12px;
+  }
+  .pwa-banner.visible { display: flex; animation: apparait .3s var(--ease); }
+  .pwa-banner-ico { font-size: 28px; flex: 0 0 auto; }
+  .pwa-banner-txt { flex: 1; min-width: 0; }
+  .pwa-banner-txt strong { font-size: 14px; font-weight: 800; display: block; letter-spacing: -.2px; }
+  .pwa-banner-txt span { font-size: 12px; opacity: .85; }
+  .pwa-banner-btn {
+    flex: 0 0 auto; background: #fff; color: #15321F;
+    border: none; border-radius: 999px; padding: 8px 14px;
+    font-size: 13px; font-weight: 800; font-family: var(--police);
+    cursor: pointer; transition: filter var(--t-fast);
+  }
+  .pwa-banner-btn:hover { filter: brightness(.93); }
+  .pwa-banner-close {
+    flex: 0 0 auto; background: none; border: none; color: rgba(255,255,255,.7);
+    font-size: 18px; cursor: pointer; padding: 4px; line-height: 1;
+  }
+
 </style>
 </head>
 <body>
@@ -2131,6 +2167,17 @@
 
       <!-- ================= ACCUEIL V2 = Vie du club ================= -->
       <section class="ecran actif" data-ecran="accueil">
+        <!-- Bannière PWA install -->
+        <div class="pwa-banner" id="pwa-banner">
+          <span class="pwa-banner-ico">📲</span>
+          <div class="pwa-banner-txt">
+            <strong>Installer l'application</strong>
+            <span>Accède à AssoPilot depuis ton écran d'accueil</span>
+          </div>
+          <button class="pwa-banner-btn" id="pwa-install-btn">Installer</button>
+          <button class="pwa-banner-close" id="pwa-banner-close">✕</button>
+        </div>
+
         <div class="bienvenue">
           <h1 id="accueil-bonjour">Bonjour 👋</h1>
           <p id="accueil-phrase">Bienvenue au club !</p>
@@ -3729,6 +3776,59 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('visible'), 2200);
   }
+
+  /* ===========================================================
+     PWA — SERVICE WORKER + BANNIÈRE INSTALLATION
+     =========================================================== */
+  let _deferredInstallPrompt = null;
+
+  // Enregistrement du Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('SW enregistré:', reg.scope))
+        .catch(err => console.warn('SW échec:', err));
+    });
+  }
+
+  // Capture l'événement d'installation (Android/Chrome)
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _deferredInstallPrompt = e;
+    // Afficher la bannière seulement si pas déjà installé et pas fermé
+    if (!localStorage.getItem('pwa-banner-fermee')) {
+      const banner = document.getElementById('pwa-banner');
+      if (banner) banner.classList.add('visible');
+    }
+  });
+
+  // Bouton Installer
+  const pwaBannerBtn = document.getElementById('pwa-install-btn');
+  if (pwaBannerBtn) {
+    pwaBannerBtn.addEventListener('click', async () => {
+      if (!_deferredInstallPrompt) return;
+      _deferredInstallPrompt.prompt();
+      const { outcome } = await _deferredInstallPrompt.userChoice;
+      _deferredInstallPrompt = null;
+      document.getElementById('pwa-banner')?.classList.remove('visible');
+      if (outcome === 'accepted') montrerToast('Application installée ! 🎉');
+    });
+  }
+
+  // Fermer la bannière
+  const pwaBannerClose = document.getElementById('pwa-banner-close');
+  if (pwaBannerClose) {
+    pwaBannerClose.addEventListener('click', () => {
+      document.getElementById('pwa-banner')?.classList.remove('visible');
+      localStorage.setItem('pwa-banner-fermee', '1');
+    });
+  }
+
+  // Détection app déjà installée
+  window.addEventListener('appinstalled', () => {
+    document.getElementById('pwa-banner')?.classList.remove('visible');
+    _deferredInstallPrompt = null;
+  });
 
   /* ===========================================================
      PROFIL — ACCORDÉON
