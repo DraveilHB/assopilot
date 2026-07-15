@@ -1660,6 +1660,19 @@
   .ev-a-badge.badge-warn   { background: #fdf1dd; color: #a86008; }
   .ev-a-badge.badge-alert  { background: #fde7e2; color: #a5251b; }
 
+  .ev-a-actions {
+    display: flex; gap: 6px; justify-content: flex-end; margin-top: 10px;
+    padding-top: 10px; border-top: 1px solid var(--bordure);
+  }
+  .ev-a-btn-action {
+    border: 1px solid var(--bordure); background: var(--fond);
+    border-radius: 8px; padding: 5px 10px; font-size: 14px;
+    cursor: pointer; font-family: var(--police);
+    transition: background var(--t-fast), border-color var(--t-fast);
+  }
+  .ev-a-btn-action:hover { background: var(--fond-2); border-color: var(--bordure-forte); }
+  .ev-a-btn-action.danger:hover { background: #fde7e2; border-color: #f3c7be; }
+
   /* ============================================================
      V2 — COUPS DE MAIN
      ============================================================ */
@@ -2749,7 +2762,7 @@
     evenements = (data || []).map(ligneVersEvenement);
     rafraichirMenuEvenements();
     afficherOngletEvenements();
-    afficherAccueilV2();
+    // afficherAccueilV2() appelé par chargerBesoins() une fois les deux sources prêtes
   }
 
   /* Besoins (fictifs) */
@@ -3070,13 +3083,15 @@
       if (aC !== bC) return aC ? 1 : -1;
       return urgences[urgenceDe(a)].rang - urgences[urgenceDe(b)].rang || b.importance - a.importance;
     });
-    document.getElementById('titre-libres').style.display = libres.length ? '' : 'none';
-    document.getElementById('liste-libres').innerHTML = libres.map(carteBesoin).join('');
+    const elTitre = document.getElementById('titre-libres');
+    if (elTitre) elTitre.style.display = libres.length ? '' : 'none';
+    const elLibres = document.getElementById('liste-libres');
+    if (elLibres) elLibres.innerHTML = libres.map(carteBesoin).join('');
 
-    // --- Mes engagements ---
+    // --- Mes engagements (compat V1 — masqué en V2) ---
     const miens = besoins.filter(b => b.jeParticipe);
     const zone = document.getElementById('mes-engagements');
-    zone.innerHTML = miens.length
+    if (zone) zone.innerHTML = miens.length
       ? miens.map(carteBesoin).join('')
       : `<div class="vide"><div class="icone">🙌</div><p>Tu ne t'es proposé sur aucune mission pour l'instant.</p></div>`;
 
@@ -3419,6 +3434,12 @@
           (badge.cls !== 'badge-ok' ? 'onclick="allerCoupsDeMain(\'' + ev.id + '\')"' : '') +
           '>' + badge.label + '</button>'
         : '';
+      const actionsHtml = peutGererPole(ev.pole)
+        ? '<div class="ev-a-actions">' +
+          '<button class="ev-a-btn-action" onclick="modifierEvenement(&quot;' + ev.id + '&quot;)" title="Modifier">✏️</button>' +
+          '<button class="ev-a-btn-action danger" onclick="supprimerEvenement(&quot;' + ev.id + '&quot;)" title="Supprimer">🗑️</button>' +
+          '</div>'
+        : '';
       return '<div class="ev-agenda ' + bCls + '">' +
         '<div class="ev-agenda-haut">' +
         '<div class="infos">' +
@@ -3427,6 +3448,7 @@
         '</div>' +
         badgeHtml +
         '</div>' +
+        actionsHtml +
         '</div>';
     }).join('');
   }
