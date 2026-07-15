@@ -5258,11 +5258,20 @@
   let modePin = "saisie";       // "saisie" (PIN existant) | "creation1" | "creation2"
   let premierPin = "";          // mémorise le 1er PIN lors de la création
 
-  document.getElementById('cx-valider-id').addEventListener('click', () => {
+  document.getElementById('cx-valider-id').addEventListener('click', async () => {
     const identifiant = document.getElementById('cx-id').value.trim().toLowerCase();
     const err = document.getElementById('cx-erreur-id');
     err.classList.remove('visible');
     if (!identifiant) { err.textContent = "Indique ton identifiant 🙂"; err.classList.add('visible'); return; }
+
+    // Si les membres ne sont pas encore chargés (race condition au démarrage), on attend
+    if (!comptesDemo.length) {
+      const btn = document.getElementById('cx-valider-id');
+      const ancienTexte = btn.textContent;
+      btn.textContent = "Chargement…"; btn.disabled = true;
+      await chargerMembres();
+      btn.textContent = ancienTexte; btn.disabled = false;
+    }
 
     const membre = comptesDemo.find(c => c.identifiant === identifiant);
     if (!membre) {
