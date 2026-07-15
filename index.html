@@ -14,6 +14,7 @@
 <title>AssoPilot</title>
 <!-- Bibliothèque Supabase (chargée depuis le CDN officiel) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -2054,6 +2055,19 @@
   }
 
 </style>
+  <!-- OneSignal -->
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "c7d84366-3039-4ec1-84a4-5a1c244ddeef",
+        safari_web_id: "web.onesignal.auto.c7d84366-3039-4ec1-84a4-5a1c244ddeef",
+        notifyButton: { enable: false },
+        allowLocalhostAsSecureOrigin: true,
+      });
+    });
+  </script>
 </head>
 <body>
 
@@ -2864,6 +2878,36 @@
      =========================================================== */
 
   /* --- Connexion Supabase --- */
+  // ── OneSignal Web Push ──
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  window.OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "c7d84366-3039-4ec1-84a4-5a1c244ddeef",
+      safari_web_id: "web.onesignal.auto.c7d84366-3039-4ec1-84a4-5a1c244ddeef",
+      notifyButton: { enable: false }, // on gère nous-mêmes le bouton
+      allowLocalhostAsSecureOrigin: true,
+    });
+  });
+
+  // Demande la permission push après connexion
+  async function demanderPermissionPush() {
+    if (!window.OneSignal) return;
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        window.OneSignalDeferred.push(async function(OneSignal) {
+          await OneSignal.Notifications.requestPermission();
+          // Associer l'utilisateur connecté à son ID OneSignal
+          if (MON_ID) {
+            await OneSignal.login(MON_ID);
+          }
+        });
+      }
+    } catch(e) {
+      console.warn('Push permission:', e);
+    }
+  }
+
   const SUPABASE_URL = "https://rboftnretbhasthvjdns.supabase.co";
   const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJib2Z0bnJldGJoYXN0aHZqZG5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NzEzNDMsImV4cCI6MjA5ODA0NzM0M30.RwK0dGMM5e9_ExKfNW4D5Z9bHNrQ1ucvPyTqEzh5v58";
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
@@ -5935,6 +5979,24 @@
       await chargerGroupes();
       await chargerParticipations();
       await afficherMonParcours();
+      // Demander permission push (délai pour ne pas interrompre le chargement)
+      setTimeout(demanderPermissionPush, 2000);
+      // OneSignal — demander la permission push (après 2s pour ne pas bloquer)
+      setTimeout(async () => {
+        try {
+          if (window.OneSignal) {
+            await window.OneSignal.Notifications.requestPermission();
+            // Taguer le membre pour le ciblage
+            await window.OneSignal.User.addTags({
+              membre_id: MON_ID || '',
+              role: roleActuel || 'benevole',
+              pole: MON_POLE || '',
+            });
+          }
+        } catch(e) {
+          console.warn('OneSignal:', e?.message || e);
+        }
+      }, 2000);
       // Pré-remplir les champs coordonnées
       const moi = comptesDemo.find(c => c.id === MON_ID);
       if (moi) {
