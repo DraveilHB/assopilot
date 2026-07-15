@@ -1638,6 +1638,9 @@
   }
   .ev-a-badge:hover { transform: scale(1.04); filter: brightness(.94); }
   .ev-a-badge:active { transform: scale(.96); }
+  .ev-a-auteur {
+    font-size: 11px; color: var(--gris-doux); margin-top: 4px; font-weight: 600;
+  }
   .ev-a-badge.badge-ok   { background: #e7f5ec; color: #146d3f; cursor: default; }
   .ev-a-badge.badge-warn { background: #fdf1dd; color: #a86008; }
   .ev-a-badge.badge-alert{ background: #fde7e2; color: #a5251b; }
@@ -1663,6 +1666,7 @@
   .cdm-event-infos { flex: 1; min-width: 0; }
   .cdm-event-nom { font-size: 15px; font-weight: 800; color: var(--sapin); letter-spacing: -.2px; }
   .cdm-event-date { font-size: 12px; color: var(--gris-texte); font-weight: 600; margin-top: 2px; }
+  .cdm-event-auteur { font-weight: 500; color: var(--gris-doux); font-style: italic; }
   .cdm-event-reste { font-size: 11px; font-weight: 800; padding: 4px 9px; border-radius: 999px; flex: 0 0 auto; background: var(--fond-2); color: var(--gris-texte); }
   .cdm-event-reste.reste-alert { background: #fde7e2; color: #a5251b; }
   .cdm-event-reste.reste-warn  { background: #fdf1dd; color: #a86008; }
@@ -1705,6 +1709,93 @@
     transition: background var(--t-fast), color var(--t-fast);
   }
   .aide-retrait:hover { background: #fde7e2; color: #b91c1c; }
+
+
+  /* ============================================================
+     V2 — SECTION COORDONNÉES PROFIL
+     ============================================================ */
+  .coords-form { margin-bottom: 8px; }
+  .coords-champ { margin-bottom: 10px; }
+  .coords-champ label { font-size: 12px; font-weight: 800; color: var(--gris-texte); display: block; margin-bottom: 5px; letter-spacing: .3px; text-transform: uppercase; }
+  .coords-champ input {
+    width: 100%; padding: 12px 14px; border: 1.5px solid var(--bordure);
+    border-radius: var(--r); font-size: 15px; font-family: var(--police);
+    background: var(--fond); color: var(--texte);
+    transition: border-color var(--t-fast), box-shadow var(--t-fast);
+    box-sizing: border-box;
+  }
+  .coords-champ input:focus { outline: none; border-color: var(--vert); box-shadow: 0 0 0 3px rgba(22,163,74,.12); }
+  .btn-coords-save {
+    width: 100%; padding: 13px; background: var(--vert); color: #fff;
+    border: none; border-radius: var(--r); font-size: 15px; font-weight: 800;
+    font-family: var(--police); cursor: pointer; margin-top: 4px;
+    transition: filter var(--t-fast), transform var(--t-fast);
+  }
+  .btn-coords-save:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .btn-coords-save:active { transform: scale(.985); }
+  .coords-note { font-size: 11.5px; color: var(--gris-doux); margin-top: 8px; text-align: center; line-height: 1.5; }
+
+  /* ============================================================
+     V2 — MODALE FICHE CONTACT
+     ============================================================ */
+  .contact-fond {
+    position: fixed; inset: 0; background: rgba(11,31,20,.45);
+    backdrop-filter: blur(4px); z-index: 90;
+    display: flex; align-items: flex-end; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity var(--t);
+  }
+  .contact-fond.ouvert { opacity: 1; pointer-events: auto; }
+  .contact-modale {
+    background: var(--carte); border-radius: var(--r-xl) var(--r-xl) 0 0;
+    width: 100%; max-width: 480px;
+    padding: 8px 20px max(24px, env(safe-area-inset-bottom));
+    transform: translateY(100%);
+    transition: transform .32s var(--ease);
+    box-shadow: 0 -20px 60px -20px rgba(11,31,20,.3);
+  }
+  .contact-fond.ouvert .contact-modale { transform: translateY(0); }
+  .contact-poignee { width: 44px; height: 5px; border-radius: 10px; background: var(--bordure-forte); margin: 10px auto 18px; }
+  .contact-avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--vert-tres-clair); border: 2px solid #c6e6d1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 800; color: var(--sapin);
+    margin: 0 auto 10px;
+  }
+  .contact-nom { text-align: center; font-size: 18px; font-weight: 800; color: var(--sapin); letter-spacing: -.3px; }
+  .contact-role { text-align: center; font-size: 13px; color: var(--gris-texte); margin-top: 3px; margin-bottom: 18px; font-weight: 600; }
+  .contact-actions { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+  .contact-btn {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px; border-radius: var(--r); border: 1.5px solid var(--bordure);
+    background: var(--fond); cursor: pointer; font-family: var(--police);
+    transition: background var(--t-fast), border-color var(--t-fast), transform var(--t-fast);
+    text-decoration: none; color: var(--texte);
+  }
+  .contact-btn:not(.contact-btn-off):hover { background: var(--vert-tres-clair); border-color: #c6e6d1; transform: translateY(-1px); }
+  .contact-btn:not(.contact-btn-off):active { transform: scale(.985); }
+  .contact-btn-off { opacity: .42; cursor: default; }
+  .contact-btn-ico { font-size: 22px; flex: 0 0 auto; }
+  .contact-btn-txt { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .contact-btn-txt strong { font-size: 15px; font-weight: 800; letter-spacing: -.2px; }
+  .contact-btn-txt span { font-size: 12px; color: var(--gris-texte); }
+  .contact-fermer {
+    width: 100%; padding: 13px; border: 1px solid var(--bordure); background: transparent;
+    border-radius: var(--r); font-size: 15px; font-weight: 700;
+    font-family: var(--police); color: var(--gris-texte); cursor: pointer;
+    transition: background var(--t-fast);
+  }
+  .contact-fermer:hover { background: var(--fond-2); }
+
+  /* Prénom créateur cliquable */
+  .ev-a-auteur { font-size: 11px; color: var(--gris-doux); margin-top: 4px; font-weight: 600; }
+  .ev-a-auteur-lien, .cdm-event-auteur {
+    cursor: pointer; text-decoration: underline dotted;
+    transition: color var(--t-fast);
+  }
+  .ev-a-auteur-lien:hover { color: var(--sapin); }
+  .cdm-event-auteur:hover { color: var(--sapin); }
 
 
 </style>
@@ -2044,6 +2135,21 @@
           </div>
         </div>
 
+        <!-- ===== Mes coordonnées ===== -->
+        <div class="section-titre" style="margin-top:8px;">Mes coordonnées</div>
+        <div class="coords-form">
+          <div class="coords-champ">
+            <label for="coords-tel">Téléphone</label>
+            <input id="coords-tel" type="tel" placeholder="06 12 34 56 78" autocomplete="tel" />
+          </div>
+          <div class="coords-champ">
+            <label for="coords-email">Email</label>
+            <input id="coords-email" type="email" placeholder="prenom@exemple.fr" autocomplete="email" />
+          </div>
+          <button class="btn-coords-save" id="btn-coords-save">Enregistrer mes coordonnées</button>
+          <p class="coords-note">Tes coordonnées sont visibles par les autres membres du club pour faciliter la coordination.</p>
+        </div>
+
         <button class="btn-deco" id="btn-deco">Se déconnecter</button>
       </section>
 
@@ -2356,6 +2462,18 @@
     </div>
 
     <div class="toast" id="toast"></div>
+
+    <!-- ============ MODALE FICHE CONTACT ============ -->
+    <div class="contact-fond" id="contact-fond">
+      <div class="contact-modale">
+        <div class="contact-poignee"></div>
+        <div class="contact-avatar" id="contact-avatar">?</div>
+        <div class="contact-nom" id="contact-nom">—</div>
+        <div class="contact-role" id="contact-role">—</div>
+        <div class="contact-actions" id="contact-actions"><!-- rempli par JS --></div>
+        <button class="contact-fermer" id="contact-fermer">Fermer</button>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -2717,6 +2835,7 @@
       pole: row.pole || null,
       visibilite: row.visibilite || 'tous',
       visibiliteCible: normCible(row.visibilite_cible),
+      createurId: row.createur_id || null,
       quand: i + 1,
     };
   }
@@ -3269,6 +3388,78 @@
   }
 
   /* ===========================================================
+     MODALE FICHE CONTACT
+     =========================================================== */
+  const contactFond = document.getElementById('contact-fond');
+  document.getElementById('contact-fermer').addEventListener('click', fermerContact);
+  contactFond.addEventListener('click', e => { if (e.target === contactFond) fermerContact(); });
+
+  function fermerContact() {
+    contactFond.classList.remove('ouvert');
+  }
+
+  function ouvrirContact(membreId) {
+    const m = comptesDemo.find(c => c.id === membreId);
+    if (!m) return;
+    const initiales = (m.prenom ? m.prenom[0] : '') + (m.nom ? m.nom[0] : '');
+    document.getElementById('contact-avatar').textContent = initiales || '?';
+    document.getElementById('contact-nom').textContent = m.prenom + (m.nom ? ' ' + m.nom : '');
+    const roles = { webmaster: 'Webmaster', responsable: 'Responsable', benevole: 'Bénévole' };
+    document.getElementById('contact-role').textContent = (m.fonction || roles[m.role] || 'Membre');
+
+    const tel = (m.tel || '').replace(/\s/g, '');
+    const email = m.email || '';
+    const telFormate = m.tel || '';
+    const telInt = tel.startsWith('0') ? '+33' + tel.slice(1) : tel;
+
+    const actions = [
+      {
+        ico: '📞', label: 'Appeler', detail: telFormate || 'Non renseigné',
+        href: tel ? 'tel:' + tel : null
+      },
+      {
+        ico: '💬', label: 'SMS', detail: telFormate || 'Non renseigné',
+        href: tel ? 'sms:' + tel : null
+      },
+      {
+        ico: '💚', label: 'WhatsApp', detail: telFormate || 'Non renseigné',
+        href: tel ? 'https://wa.me/' + telInt : null
+      },
+      {
+        ico: '✉️', label: 'Email', detail: email || 'Non renseigné',
+        href: email ? 'mailto:' + email : null
+      }
+    ];
+
+    document.getElementById('contact-actions').innerHTML = actions.map(a =>
+      a.href
+        ? '<a class="contact-btn" href="' + a.href + '" target="_blank" rel="noopener">' +
+          '<span class="contact-btn-ico">' + a.ico + '</span>' +
+          '<span class="contact-btn-txt"><strong>' + a.label + '</strong><span>' + a.detail + '</span></span>' +
+          '</a>'
+        : '<div class="contact-btn contact-btn-off">' +
+          '<span class="contact-btn-ico">' + a.ico + '</span>' +
+          '<span class="contact-btn-txt"><strong>' + a.label + '</strong><span>' + a.detail + '</span></span>' +
+          '</div>'
+    ).join('');
+
+    contactFond.classList.add('ouvert');
+  }
+
+  /* Save coordonnées */
+  document.getElementById('btn-coords-save').addEventListener('click', async () => {
+    const tel   = (document.getElementById('coords-tel').value || '').trim();
+    const email = (document.getElementById('coords-email').value || '').trim();
+    if (!MON_ID) return;
+    const { error } = await sb.from('membres').update({ tel, email }).eq('id', MON_ID);
+    if (error) { montrerToast('Erreur lors de la sauvegarde 😕'); return; }
+    // Mettre à jour le cache local
+    const moi = comptesDemo.find(c => c.id === MON_ID);
+    if (moi) { moi.tel = tel; moi.email = email; }
+    montrerToast('Coordonnées enregistrées ✅');
+  });
+
+  /* ===========================================================
      NAVIGATION V2
      =========================================================== */
   const onglets = document.querySelectorAll('.nav-item');
@@ -3380,11 +3571,16 @@
           '<button class="ev-a-btn-action danger" onclick="supprimerEvenement(\"' + ev.id + '\")" title="Supprimer">🗑️</button>' +
           '</div>'
         : '';
+      const auteurAccueil = prenomCreateur(ev.createurId);
+      const auteurHtml = auteurAccueil && ev.createurId
+        ? '<div class="ev-a-auteur">Créé par <span class="ev-a-auteur-lien" onclick="ouvrirContact(\"' + ev.createurId + '\")">' + auteurAccueil + '</span></div>'
+        : '';
       return '<div class="ev-agenda ' + bCls + '">' +
         '<div class="ev-agenda-haut">' +
         '<div class="infos">' +
         '<div class="ev-a-nom">' + ev.emoji + ' ' + ev.nom + '</div>' +
         '<div class="ev-a-date">' + dateEventCourte(ev) + '</div>' +
+        auteurHtml +
         '</div>' + badgeHtml +
         '</div>' + actionsHtml +
         '</div>';
@@ -3392,6 +3588,12 @@
   }
 
   let cdmFiltreEventId = null;
+  function prenomCreateur(createurId) {
+    if (!createurId) return null;
+    const m = comptesDemo.find(c => c.id === createurId);
+    return m ? m.prenom : null;
+  }
+
   function allerCoupsDeMain(evId) {
     cdmFiltreEventId = evId || null;
     afficher('coups-de-main');
@@ -3437,12 +3639,16 @@
             '<button class="cdm-voir-plus" id="cdm-btn-' + ev.id + '" onclick="basculerRepliCdm(\'' + ev.id + '\')">' +
             '+ ' + cachees.length + ' autre' + (cachees.length > 1 ? 's' : '') + ' mission' + (cachees.length > 1 ? 's' : '') + '</button>'
           : '';
+        const auteurCdm = prenomCreateur(ev.createurId);
+        const auteurCdmHtml = auteurCdm && ev.createurId
+          ? ' · <span class="cdm-event-auteur" onclick="ouvrirContact(\"' + ev.createurId + '\")" >par ' + auteurCdm + '</span>'
+          : '';
         return '<div class="cdm-event-bloc" id="cdm-bloc-' + ev.id + '">' +
           '<div class="cdm-event-entete">' +
           '<span class="cdm-event-emoji">' + ev.emoji + '</span>' +
           '<div class="cdm-event-infos">' +
           '<div class="cdm-event-nom">' + ev.nom + '</div>' +
-          '<div class="cdm-event-date">' + dateEventCourte(ev) + '</div></div>' +
+          '<div class="cdm-event-date">' + dateEventCourte(ev) + auteurCdmHtml + '</div></div>' +
           '<span class="cdm-event-reste ' + resteCls + '">' + manque + ' place' + (manque > 1 ? 's' : '') + '</span>' +
           '</div>' + lignesV + repliHtml + '</div>';
       }).join('');
@@ -4190,7 +4396,8 @@
     const { data: evData, error: evErr } = await sb.from('evenements')
       .insert({
         nom, type, emoji, date_iso: dateISO, heure: heure || null,
-        pole, visibilite: vis.visibilite, visibilite_cible: vis.cible
+        pole, visibilite: vis.visibilite, visibilite_cible: vis.cible,
+        createur_id: MON_ID || null
       })
       .select().single();
     if (evErr) { console.error('Création événement échouée', evErr); montrerToast("Erreur : événement non créé."); return; }
@@ -5064,6 +5271,14 @@
       await chargerBesoins();   // ← appellera afficherAccueilV2() une fois les deux chargés
       await chargerAnnonces();
       await afficherMonParcours();
+      // Pré-remplir les champs coordonnées
+      const moi = comptesDemo.find(c => c.id === MON_ID);
+      if (moi) {
+        const elTel = document.getElementById('coords-tel');
+        const elEmail = document.getElementById('coords-email');
+        if (elTel) elTel.value = moi.tel || '';
+        if (elEmail) elEmail.value = moi.email || '';
+      }
     })();
   }
 
