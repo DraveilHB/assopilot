@@ -2031,6 +2031,28 @@
   .ios-prompt-etape span { color: rgba(255,255,255,.85); }
   .ios-prompt-etape strong { color: #fff; }
 
+  /* ============================================================
+     NAV — BADGES DE NOTIFICATION
+     ============================================================ */
+  .nav-item { position: relative; }
+  .nav-badge {
+    position: absolute; top: 4px; right: 10px;
+    min-width: 17px; height: 17px; border-radius: 999px;
+    background: #e0533b; color: #fff;
+    font-size: 10px; font-weight: 900;
+    display: none; align-items: center; justify-content: center;
+    padding: 0 4px; line-height: 1;
+    border: 2px solid var(--fond);
+    font-family: var(--police);
+    animation: pop .2s var(--ease);
+  }
+  .nav-badge.visible { display: flex; }
+  @keyframes pop {
+    0%   { transform: scale(0); }
+    70%  { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+
 </style>
 </head>
 <body>
@@ -2456,6 +2478,7 @@
         <span class="ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 8.5a2 2 0 0 0-2-2H8.5A2.5 2.5 0 0 0 6 9v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3.5"/><path d="M17 3.5a2.5 2.5 0 0 1 0 5H14v-2.5A2.5 2.5 0 0 1 17 3.5Z"/><path d="M10 13h4M10 16h2"/></svg>
         </span><span class="lbl">Coups de main</span>
+        <span class="nav-badge" id="badge-nav-cdm"></span>
       </button>
       <div class="nav-plus"><button id="btn-plus" title="Créer…" aria-label="Créer…">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -2469,6 +2492,7 @@
         <span class="ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="3.5"/><path d="M4.5 20c1.2-3.5 4.2-5.5 7.5-5.5s6.3 2 7.5 5.5"/></svg>
         </span><span class="lbl">Profil</span>
+        <span class="nav-badge" id="badge-nav-profil"></span>
       </button>
     </nav>
 
@@ -3258,6 +3282,7 @@
     afficherBesoins();
     afficherAccueilV2();
     afficherEncartManque();
+    majBadgesNav();
     const _ea = document.querySelector('.ecran.actif');
     if (_ea) {
       if (_ea.dataset.ecran === 'coups-de-main') afficherCoupsDeMain();
@@ -3916,6 +3941,36 @@
   /* ===========================================================
      PROFIL — ACCORDÉON
      =========================================================== */
+  function majBadgesNav() {
+    // Badge Coups de main — missions ouvertes non couvertes visibles par moi
+    const nbCdm = besoins.filter(b =>
+      !b.cloture && b.qui.length < b.cherche && estVisiblePourMoi(b)
+    ).length;
+    const badgeCdm = document.getElementById('badge-nav-cdm');
+    if (badgeCdm) {
+      if (nbCdm > 0) {
+        badgeCdm.textContent = nbCdm > 99 ? '99+' : nbCdm;
+        badgeCdm.classList.add('visible');
+      } else {
+        badgeCdm.classList.remove('visible');
+      }
+    }
+
+    // Badge Profil — demandes en attente (gestionnaires seulement)
+    const nbAttente = peutGerer()
+      ? comptesDemo.filter(c => c.statut === 'attente').length
+      : 0;
+    const badgeProfil = document.getElementById('badge-nav-profil');
+    if (badgeProfil) {
+      if (nbAttente > 0) {
+        badgeProfil.textContent = nbAttente;
+        badgeProfil.classList.add('visible');
+      } else {
+        badgeProfil.classList.remove('visible');
+      }
+    }
+  }
+
   function basculerPA(cle) {
     const items = document.querySelectorAll('.pa-item');
     items.forEach(item => {
@@ -5821,6 +5876,7 @@
     if (error) { console.error('Chargement membres échoué', error); return; }
     comptesDemo = data.map(ligneVersMembre);
     majBadgeDemandes();
+    majBadgesNav();
     // Seed initial des responsables si besoin, puis rechargement
     // (seederResponsables désactivé : les comptes existent déjà en base.
     //  Cette fonction créait des doublons à chaque démarrage.)
