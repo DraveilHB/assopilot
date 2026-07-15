@@ -1,0 +1,27 @@
+{
+  "name": "AssoPilot — Draveil HB",
+  "short_name": "AssoPilot",
+  "description": "La coordination des bénévoles du Draveil Handball",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F5F0",
+  "theme_color": "#16A34A",
+  "orientation": "portrait",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["sports", "utilities"]
+}
