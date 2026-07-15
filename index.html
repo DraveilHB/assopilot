@@ -1660,19 +1660,6 @@
   .ev-a-badge.badge-warn   { background: #fdf1dd; color: #a86008; }
   .ev-a-badge.badge-alert  { background: #fde7e2; color: #a5251b; }
 
-  .ev-a-actions {
-    display: flex; gap: 6px; justify-content: flex-end; margin-top: 10px;
-    padding-top: 10px; border-top: 1px solid var(--bordure);
-  }
-  .ev-a-btn-action {
-    border: 1px solid var(--bordure); background: var(--fond);
-    border-radius: 8px; padding: 5px 10px; font-size: 14px;
-    cursor: pointer; font-family: var(--police);
-    transition: background var(--t-fast), border-color var(--t-fast);
-  }
-  .ev-a-btn-action:hover { background: var(--fond-2); border-color: var(--bordure-forte); }
-  .ev-a-btn-action.danger:hover { background: #fde7e2; border-color: #f3c7be; }
-
   /* ============================================================
      V2 — COUPS DE MAIN
      ============================================================ */
@@ -2762,7 +2749,7 @@
     evenements = (data || []).map(ligneVersEvenement);
     rafraichirMenuEvenements();
     afficherOngletEvenements();
-    // afficherAccueilV2() appelé par chargerBesoins() une fois les deux sources prêtes
+    afficherAccueilV2();
   }
 
   /* Besoins (fictifs) */
@@ -3432,12 +3419,6 @@
           (badge.cls !== 'badge-ok' ? 'onclick="allerCoupsDeMain(\'' + ev.id + '\')"' : '') +
           '>' + badge.label + '</button>'
         : '';
-      const actionsHtml = peutGererPole(ev.pole)
-        ? '<div class="ev-a-actions">' +
-          '<button class="ev-a-btn-action" onclick="modifierEvenement(&quot;' + ev.id + '&quot;)" title="Modifier">✏️</button>' +
-          '<button class="ev-a-btn-action danger" onclick="supprimerEvenement(&quot;' + ev.id + '&quot;)" title="Supprimer">🗑️</button>' +
-          '</div>'
-        : '';
       return '<div class="ev-agenda ' + bCls + '">' +
         '<div class="ev-agenda-haut">' +
         '<div class="infos">' +
@@ -3446,7 +3427,6 @@
         '</div>' +
         badgeHtml +
         '</div>' +
-        actionsHtml +
         '</div>';
     }).join('');
   }
