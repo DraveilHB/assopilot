@@ -3434,8 +3434,8 @@
         : '';
       const actionsHtml = peutGererPole(ev.pole)
         ? '<div class="ev-a-actions">' +
-          '<button class="ev-a-btn-action" onclick="modifierEvenement('" + ev.id + "'" + ")" title="Modifier">✏️</button>' +
-          '<button class="ev-a-btn-action danger" onclick="supprimerEvenement('" + ev.id + "'" + ")" title="Supprimer">🗑️</button>' +
+          '<button class="ev-a-btn-action" onclick="modifierEvenement(&quot;' + ev.id + '&quot;)" title="Modifier">✏️</button>' +
+          '<button class="ev-a-btn-action danger" onclick="supprimerEvenement(&quot;' + ev.id + '&quot;)" title="Supprimer">🗑️</button>' +
           '</div>'
         : '';
       return '<div class="ev-agenda ' + bCls + '">' +
