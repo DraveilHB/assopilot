@@ -2893,7 +2893,7 @@
       const membres = (groupeMembres[g.id] || []).map(mid => comptesDemo.find(c => c.id === mid)).filter(Boolean);
       const membresTags = membres.map(m =>
         '<span class="groupe-membre-tag">' + m.prenom + ' ' + m.nom +
-        '<button onclick="retirerDuGroupe(\"' + g.id + '\",\"' + m.id + '\")" title="Retirer">×</button></span>'
+        '<button onclick="retirerDuGroupe(&quot;' + g.id + '&quot;,&quot;' + m.id + '&quot;)" title="Retirer">×</button></span>'
       ).join('');
       const optsMembres = comptesDemo
         .filter(c => c.statut !== 'attente' && !(groupeMembres[g.id]||[]).includes(c.id))
@@ -2904,12 +2904,12 @@
         '<span class="groupe-carte-nom">' + g.nom + '</span>' +
         (g.pole ? '<span class="groupe-carte-pole">' + (LABELS_POLE[g.pole]||g.pole) + '</span>' : '') +
         '<div class="groupe-carte-actions">' +
-        '<button class="groupe-btn-sm danger" onclick="supprimerGroupe(\"' + g.id + '\")" title="Supprimer">🗑️</button>' +
+        '<button class="groupe-btn-sm danger" onclick="supprimerGroupe(&quot;' + g.id + '&quot;)" title="Supprimer">🗑️</button>' +
         '</div></div>' +
         '<div class="groupe-membres-liste">' + (membresTags || '<span style="font-size:12px;color:var(--gris-doux);">Aucun membre</span>') + '</div>' +
         '<div class="groupe-ajouter-membre">' +
         '<select id="sel-add-' + g.id + '"><option value="">Ajouter un membre…</option>' + optsMembres + '</select>' +
-        '<button onclick="ajouterAuGroupe(\"' + g.id + '\")">＋</button>' +
+        '<button onclick="ajouterAuGroupe(&quot;' + g.id + '&quot;)">＋</button>' +
         '</div>' +
         '</div>';
     }).join('');
@@ -3944,13 +3944,13 @@
         : '';
       const actionsHtml = peutGererPole(ev.pole)
         ? '<div class="ev-a-actions">' +
-          '<button class="ev-a-btn-action" onclick="modifierEvenement(\"' + ev.id + '\")" title="Modifier">✏️</button>' +
-          '<button class="ev-a-btn-action danger" onclick="supprimerEvenement(\"' + ev.id + '\")" title="Supprimer">🗑️</button>' +
+          '<button class="ev-a-btn-action" onclick="modifierEvenement(&quot;' + ev.id + '&quot;)" title="Modifier">✏️</button>' +
+          '<button class="ev-a-btn-action danger" onclick="supprimerEvenement(&quot;' + ev.id + '&quot;)" title="Supprimer">🗑️</button>' +
           '</div>'
         : '';
       const auteurAccueil = prenomCreateur(ev.createurId);
       const auteurHtml = auteurAccueil && ev.createurId
-        ? '<div class="ev-a-auteur">Créé par <span class="ev-a-auteur-lien" onclick="ouvrirContact(\"' + ev.createurId + '\")">' + auteurAccueil + '</span></div>'
+        ? '<div class="ev-a-auteur">Créé par <span class="ev-a-auteur-lien" onclick="ouvrirContact(&quot;' + ev.createurId + '&quot;)">' + auteurAccueil + '</span></div>'
         : '';
       // Participation (réunions uniquement)
       let participationHtml = '';
@@ -4034,7 +4034,7 @@
           : '';
         const auteurCdm = prenomCreateur(ev.createurId);
         const auteurCdmHtml = auteurCdm && ev.createurId
-          ? ' · <span class="cdm-event-auteur" onclick="ouvrirContact(\"' + ev.createurId + '\")" >par ' + auteurCdm + '</span>'
+          ? ' · <span class="cdm-event-auteur" onclick="ouvrirContact(&quot;' + ev.createurId + '&quot;)" >par ' + auteurCdm + '</span>'
           : '';
         return '<div class="cdm-event-bloc" id="cdm-bloc-' + ev.id + '">' +
           '<div class="cdm-event-entete">' +
@@ -4091,7 +4091,7 @@
         (evLabel ? '<div class="aide-event">' + evLabel + '</div>' : '') +
         (dateLabel ? '<div class="aide-date">' + dateLabel + '</div>' : '') +
         '</div>' +
-        (!term && !b.cloture ? '<button class="aide-retrait" onclick="basculer(\"' + b.id + '\")" title="Se retirer">✕</button>' : '') +
+        (!term && !b.cloture ? '<button class="aide-retrait" onclick="basculer(&quot;' + b.id + '&quot;)" title="Se retirer">✕</button>' : '') +
         '</div>';
     }
     zoneA.innerHTML = avenir.length ? avenir.map(b => carteAide(b, false)).join('')
