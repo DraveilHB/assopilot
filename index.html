@@ -3961,7 +3961,7 @@
         const nbLabel = nb === 0 ? 'Aucun participant' : nb + ' participant' + (nb > 1 ? 's' : '');
         participationHtml = '<div class="ev-a-participation">' +
           '<button class="btn-participe ' + (jeParticipe ? 'present' : 'absent') + '" ' +
-          'onclick="basculerParticipation(\"' + ev.id + '\")">' +
+          'onclick="basculerParticipation(&quot;' + ev.id + '&quot;)">' +
           (jeParticipe ? '✓ Je participe' : '＋ Je participe') +
           '</button>' +
           '<span class="ev-a-nb-participants">👥 ' + nbLabel + '</span>' +
