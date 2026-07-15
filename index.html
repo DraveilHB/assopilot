@@ -1989,6 +1989,48 @@
     font-size: 18px; cursor: pointer; padding: 4px; line-height: 1;
   }
 
+  /* ============================================================
+     PWA — TOOLTIP iOS
+     ============================================================ */
+  .ios-prompt {
+    display: none;
+    position: fixed; bottom: 80px; left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px); max-width: 360px;
+    background: #1c1c1e; color: #fff;
+    border-radius: var(--r-lg); padding: 16px 18px;
+    z-index: 95; box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    animation: apparait .3s var(--ease);
+  }
+  .ios-prompt.visible { display: block; }
+  .ios-prompt::after {
+    content: '';
+    position: absolute; bottom: -10px; left: 50%;
+    transform: translateX(-50%);
+    border: 10px solid transparent;
+    border-bottom: none;
+    border-top-color: #1c1c1e;
+  }
+  .ios-prompt-haut {
+    display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 12px;
+  }
+  .ios-prompt-titre { font-size: 15px; font-weight: 800; }
+  .ios-prompt-close {
+    background: none; border: none; color: rgba(255,255,255,.6);
+    font-size: 20px; cursor: pointer; padding: 0; line-height: 1;
+  }
+  .ios-prompt-etapes { display: flex; flex-direction: column; gap: 10px; }
+  .ios-prompt-etape {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 13px; line-height: 1.4;
+  }
+  .ios-prompt-etape-ico {
+    font-size: 22px; flex: 0 0 32px; text-align: center;
+  }
+  .ios-prompt-etape span { color: rgba(255,255,255,.85); }
+  .ios-prompt-etape strong { color: #fff; }
+
 </style>
 </head>
 <body>
@@ -2013,7 +2055,7 @@
       <div class="cx-carte">
         <div class="cx-champ">
           <label for="cx-id">Ton identifiant</label>
-          <input id="cx-id" type="text" placeholder="lohan" autocapitalize="none" autocomplete="username" />
+          <input id="cx-id" type="text" placeholder="marie.dupont" autocapitalize="none" autocomplete="username" />
         </div>
         <div class="cx-erreur" id="cx-erreur-id"></div>
         <button class="cx-bouton" id="cx-valider-id">Continuer</button>
@@ -2056,15 +2098,15 @@
       <div class="cx-carte q-scroll">
         <div class="cx-champ">
           <label for="i-prenom">Prénom</label>
-          <input id="i-prenom" type="text" placeholder="Lohan" />
+          <input id="i-prenom" type="text" placeholder="Marie" />
         </div>
         <div class="cx-champ">
           <label for="i-nom">Nom</label>
-          <input id="i-nom" type="text" placeholder="Boulard" />
+          <input id="i-nom" type="text" placeholder="Dupont" />
         </div>
         <div class="cx-champ">
           <label for="i-id">Choisis un identifiant</label>
-          <input id="i-id" type="text" placeholder="lohan.b" autocapitalize="none" />
+          <input id="i-id" type="text" placeholder="marie.dupont" autocapitalize="none" />
         </div>
         <div class="cx-champ">
           <label for="i-tel">Téléphone</label>
@@ -2325,9 +2367,9 @@
               <div class="admin-vue actif" data-vue="membres">
                 <button class="btn-creer-event" id="btn-creer-compte" style="margin-bottom:14px;">＋ Créer un compte</button>
                 <div id="form-compte" style="display:none;">
-                  <div class="cx-champ"><label for="a-prenom">Prénom</label><input id="a-prenom" type="text" placeholder="Jean" /></div>
+                  <div class="cx-champ"><label for="a-prenom">Prénom</label><input id="a-prenom" type="text" placeholder="Marie" /></div>
                   <div class="cx-champ"><label for="a-nom">Nom</label><input id="a-nom" type="text" placeholder="Dupont" /></div>
-                  <div class="cx-champ"><label for="a-id">Identifiant</label><input id="a-id" type="text" placeholder="jean.president" autocapitalize="none" /></div>
+                  <div class="cx-champ"><label for="a-id">Identifiant</label><input id="a-id" type="text" placeholder="marie.dupont" autocapitalize="none" /></div>
                   <div class="cx-champ">
                     <label for="a-role">Rôle</label>
                     <select id="a-role">
@@ -2719,6 +2761,28 @@
     </div>
 
     <div class="toast" id="toast"></div>
+
+    <!-- TOOLTIP iOS -->
+    <div class="ios-prompt" id="ios-prompt">
+      <div class="ios-prompt-haut">
+        <span class="ios-prompt-titre">📲 Installer AssoPilot</span>
+        <button class="ios-prompt-close" id="ios-prompt-close">✕</button>
+      </div>
+      <div class="ios-prompt-etapes">
+        <div class="ios-prompt-etape">
+          <span class="ios-prompt-etape-ico">1️⃣</span>
+          <span>Appuie sur <strong>Partager</strong> <strong>⬆️</strong> en bas de Safari</span>
+        </div>
+        <div class="ios-prompt-etape">
+          <span class="ios-prompt-etape-ico">2️⃣</span>
+          <span>Fais défiler et appuie sur <strong>Sur l'écran d'accueil</strong></span>
+        </div>
+        <div class="ios-prompt-etape">
+          <span class="ios-prompt-etape-ico">3️⃣</span>
+          <span>Appuie sur <strong>Ajouter</strong> en haut à droite</span>
+        </div>
+      </div>
+    </div>
 
     <!-- ============ MODALE FICHE CONTACT ============ -->
     <div class="contact-fond" id="contact-fond">
@@ -3821,6 +3885,25 @@
     pwaBannerClose.addEventListener('click', () => {
       document.getElementById('pwa-banner')?.classList.remove('visible');
       localStorage.setItem('pwa-banner-fermee', '1');
+    });
+  }
+
+  // Détection iOS — afficher le tooltip si pas encore installé
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isInStandaloneMode = window.navigator.standalone === true;
+  if (isIOS && !isInStandaloneMode && !localStorage.getItem('ios-prompt-fermee')) {
+    // Afficher après 3 secondes
+    setTimeout(() => {
+      const prompt = document.getElementById('ios-prompt');
+      if (prompt) prompt.classList.add('visible');
+    }, 3000);
+  }
+
+  const iosPromptClose = document.getElementById('ios-prompt-close');
+  if (iosPromptClose) {
+    iosPromptClose.addEventListener('click', () => {
+      document.getElementById('ios-prompt')?.classList.remove('visible');
+      localStorage.setItem('ios-prompt-fermee', '1');
     });
   }
 
