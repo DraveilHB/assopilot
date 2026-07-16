@@ -5692,14 +5692,13 @@
     document.getElementById('form-annonce').style.display = 'none';
     await chargerAnnonces();
     montrerToast("Message publié 📣");
-    // Notification push — uniquement si urgente
-    if (niveau === 'urgent') {
-      envoyerNotif('annonce_urgente', {
-        titre: '🔴 ' + titre,
-        message: texte,
-        url: 'https://assopilotdhb.vercel.app'
-      });
-    }
+    // Notification push — toutes les annonces
+    const _emoji = niveau === 'urgent' ? '🔴' : '📢';
+    envoyerNotif('annonce_urgente', {
+      titre: _emoji + ' ' + titre,
+      message: texte,
+      url: 'https://assopilotdhb.vercel.app'
+    });
   });
   async function retirerAnnonce(id) {
     const { error } = await sb.from('annonces').update({ active: false }).eq('id', id);
