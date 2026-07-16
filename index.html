@@ -3899,6 +3899,40 @@
   }
 
   /* ===========================================================
+     NOTIFICATIONS PUSH — HELPER
+     =========================================================== */
+  async function envoyerNotif(type, data) {
+    try {
+      await fetch('https://rboftnretbhasthvjdns.supabase.co/functions/v1/send-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJib2Z0bnJldGJoYXN0aHZqZG5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NzEzNDMsImV4cCI6MjA5ODA0NzM0M30.RwK0dGMM5e9_ExKfNW4D5Z9bHNrQ1ucvPyTqEzh5v58'
+        },
+        body: JSON.stringify({ type, data })
+      });
+    } catch(e) {
+      console.warn('Notification push échouée:', e);
+    }
+  }
+
+  // Enregistrer les tags OneSignal du membre connecté (pour le ciblage)
+  function enregistrerTagsOneSignal(membre) {
+    if (!window.OneSignalDeferred) return;
+    window.OneSignalDeferred.push(async function(OneSignal) {
+      try {
+        await OneSignal.User.addTags({
+          membre_id: membre.id || '',
+          pole: membre.pole || '',
+          role: membre.role || 'benevole'
+        });
+      } catch(e) {
+        console.warn('Tags OneSignal:', e);
+      }
+    });
+  }
+
+  /* ===========================================================
      PWA — SERVICE WORKER + BANNIÈRE INSTALLATION
      =========================================================== */
   let _deferredInstallPrompt = null;
@@ -5097,6 +5131,15 @@
     montrerToast(modeles.length
       ? `Événement créé avec ${modeles.length} besoins types ! 📅`
       : "Événement créé ! 📅");
+    // Notification push — réunions uniquement
+    if (type === 'reunion') {
+      const _dateStr = dateISO ? new Date(dateISO + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
+      envoyerNotif('reunion', {
+        titre: '📋 Réunion planifiée',
+        message: nom + (_dateStr ? ' · ' + _dateStr : '') + (heure ? ' à ' + heure.replace(':', 'h') : ''),
+        url: 'https://assopilotdhb.vercel.app'
+      });
+    }
   });
 
   /* Adapte l'interface au rôle réel du compte connecté */
@@ -5649,6 +5692,14 @@
     document.getElementById('form-annonce').style.display = 'none';
     await chargerAnnonces();
     montrerToast("Message publié 📣");
+    // Notification push — uniquement si urgente
+    if (niveau === 'urgent') {
+      envoyerNotif('annonce_urgente', {
+        titre: '🔴 ' + titre,
+        message: texte,
+        url: 'https://assopilotdhb.vercel.app'
+      });
+    }
   });
   async function retirerAnnonce(id) {
     const { error } = await sb.from('annonces').update({ active: false }).eq('id', id);
@@ -5796,6 +5847,24 @@
       afficher('accueil');
       await chargerBesoins();
       montrerToast("Besoin publié ! 🎉");
+      // Notification push — uniquement si urgent
+      const _niveauBesoin = ligne.urgence_forcee || 'auto';
+      const _dateB = ligne.date_iso ? new Date(ligne.date_iso + 'T00:00:00') : null;
+      const _diffJ = _dateB ? Math.round((_dateB - new Date().setHours(0,0,0,0)) / 86400000) : 99;
+      const _estUrgent = _niveauBesoin === 'urgent' || (_niveauBesoin === 'auto' && _diffJ <= 3);
+      if (_estUrgent) {
+        const _evLie = ligne.evenement_id ? evenements.find(e => e.id === ligne.evenement_id) : null;
+        const _contexte = _evLie ? ' · ' + _evLie.nom : '';
+        // Récupérer membres du groupe si besoin ciblé
+        const _groupeMembers = ligne.groupe_id ? (groupeMembres[ligne.groupe_id] || []) : [];
+        envoyerNotif('besoin_urgent', {
+          titre: '🤝 Coup de main urgent',
+          message: ligne.nom + _contexte + ' — dans ' + (_diffJ <= 0 ? 'aujourd\'hui' : _diffJ + ' j'),
+          pole: ligne.pole || null,
+          groupe_membres: _groupeMembers,
+          url: 'https://assopilotdhb.vercel.app'
+        });
+      }
     }
   });
 
@@ -5942,6 +6011,7 @@
     const _ph = _h < 12 ? 'Bonne matinée !' : _h < 18 ? 'Bonne journée !' : 'Bonne soirée !';
     document.getElementById('accueil-phrase').textContent = _ph + ' Voici ce qui se passe au club.';
     majAvatarProfil(membre.prenom, membre.nom);
+    enregistrerTagsOneSignal(membre);
     roleActuel = membre.role || 'benevole';
 
 
