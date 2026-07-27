@@ -1,7 +1,7 @@
 // Import OneSignal SW
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE_NAME = 'assopilot-v2';
+const CACHE_NAME = 'assopilot-v3-account-2';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(['/'])));

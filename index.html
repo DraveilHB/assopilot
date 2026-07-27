@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>AssoPilot — La vie du club</title>
+  <meta name="description" content="AssoPilot rassemble les rendez-vous, les missions et les bénévoles de votre club.">
+  <meta name="theme-color" content="#FBF8F0">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="stylesheet" href="styles/design-system.css?v=20260723-2">
+  <link rel="stylesheet" href="styles/auth.css?v=20260723-2">
+  <link rel="stylesheet" href="styles/home.css?v=20260723-2">
+  <link rel="stylesheet" href="styles/missions.css?v=20260723-2">
+  <link rel="stylesheet" href="styles/create.css?v=20260723-2">
+  <link rel="stylesheet" href="styles/account.css?v=20260723-2">
+</head>
+<body>
+  <a class="skip-link" href="#contenu-principal">Aller au contenu</a>
+
+  <div id="auth-wrapper" class="auth-wrapper visible">
+    <div class="auth-pattern" aria-hidden="true"></div>
+
+    <div class="auth-container">
+      <div id="auth-step-id" class="auth-step active">
+        <div class="auth-kicker">L’espace de ton club</div>
+        <div class="auth-header">
+          <img class="auth-brand-logo" src="assets/logo-assopilot.png" alt="AssoPilot">
+          <p>Tout le club, dans ta poche.</p>
+        </div>
+
+        <div class="auth-form">
+          <div class="input-group">
+            <label for="cx-id">Ton identifiant club</label>
+            <div class="input-wrapper">
+              <i data-lucide="user-round"></i>
+              <input type="text" id="cx-id" placeholder="prenom.nom" autocomplete="username" autocapitalize="none" spellcheck="false">
+            </div>
+          </div>
+
+          <div id="cx-erreur-id" class="auth-error" role="alert">Identifiant inconnu</div>
+
+          <button id="cx-valider-id" class="btn-primary">
+            <span>Continuer</span>
+            <i data-lucide="arrow-up-right"></i>
+          </button>
+        </div>
+
+        <p class="auth-help"><i data-lucide="lock-keyhole"></i> Connexion sécurisée par code PIN</p>
+      </div>
+
+      <div id="auth-step-pin" class="auth-step hidden">
+        <button id="cx-retour-id" class="btn-icon btn-back" aria-label="Changer d’identifiant">
+          <i data-lucide="arrow-left"></i>
+        </button>
+
+        <div class="auth-header auth-header-small">
+          <div class="avatar-placeholder" id="cx-avatar">?</div>
+          <div class="auth-kicker">Content de te revoir</div>
+          <h2 id="cx-pin-consigne">Entre ton code PIN</h2>
+          <p>Quatre chiffres, et c’est parti.</p>
+        </div>
+
+        <div class="pin-display">
+          <div class="pin-dots" id="pin-points" aria-label="Code PIN à quatre chiffres">
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+          </div>
+        </div>
+
+        <div id="cx-erreur-pin" class="auth-error" role="alert">Code incorrect</div>
+
+        <div class="numpad">
+          <button class="numpad-key" data-key="1">1</button>
+          <button class="numpad-key" data-key="2">2</button>
+          <button class="numpad-key" data-key="3">3</button>
+          <button class="numpad-key" data-key="4">4</button>
+          <button class="numpad-key" data-key="5">5</button>
+          <button class="numpad-key" data-key="6">6</button>
+          <button class="numpad-key" data-key="7">7</button>
+          <button class="numpad-key" data-key="8">8</button>
+          <button class="numpad-key" data-key="9">9</button>
+          <div class="numpad-key empty" aria-hidden="true"></div>
+          <button class="numpad-key" data-key="0">0</button>
+          <button class="numpad-key action" data-key="delete" aria-label="Effacer le dernier chiffre">
+            <i data-lucide="delete"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-wrapper" class="app-wrapper hidden">
+    <header class="app-header">
+      <div class="brand-lockup" aria-label="AssoPilot">
+        <img src="assets/logo-assopilot.png" alt="">
+      </div>
+      <button id="btn-deco" class="profile-button" aria-label="Se déconnecter">
+        <span id="header-avatar">AP</span>
+        <i data-lucide="log-out"></i>
+      </button>
+    </header>
+
+    <main id="contenu-principal" class="app-main">
+      <div id="home-view" class="home-view">
+      <section class="welcome-zone" aria-labelledby="accueil-bonjour">
+        <p class="eyebrow" id="home-date">Aujourd’hui</p>
+        <div class="welcome-line">
+          <div>
+            <h1 id="accueil-bonjour">Bonjour</h1>
+            <p id="accueil-phrase">Voici le tempo du club.</p>
+          </div>
+          <div class="pulse-orbit" aria-hidden="true">
+            <span></span>
+            <i data-lucide="heart-pulse"></i>
+          </div>
+        </div>
+      </section>
+
+      <section id="home-announcements" class="home-announcements hidden" aria-label="Annonces du club"></section>
+
+      <section class="next-event-card physical-card" aria-labelledby="next-event-title">
+        <div class="event-card-top">
+          <div>
+            <p class="card-kicker">Prochain rendez-vous</p>
+            <span id="next-event-status" class="live-label">À venir</span>
+          </div>
+          <div class="event-date-tile" aria-label="Date du prochain événement">
+            <strong id="next-event-day">--</strong>
+            <span id="next-event-month">---</span>
+          </div>
+        </div>
+
+        <div id="next-event-loading" class="event-skeleton" aria-label="Chargement du prochain événement">
+          <span></span><span></span><span></span>
+        </div>
+
+        <div id="next-event-content" class="hidden">
+          <h2 id="next-event-title">Prochain événement</h2>
+          <p id="next-event-meta" class="event-meta"><i data-lucide="clock-3"></i><span>Horaire à confirmer</span></p>
+          <div class="event-card-bottom">
+            <div class="coverage">
+              <div class="coverage-label">
+                <span>Équipe bénévole</span>
+                <strong id="coverage-value">0%</strong>
+              </div>
+              <div class="coverage-track"><span id="coverage-bar"></span></div>
+            </div>
+            <button class="round-action" data-action="missions" aria-label="Voir les missions">
+              <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="next-event-empty" class="card-empty hidden">
+          <i data-lucide="calendar-plus"></i>
+          <h2 id="next-event-title-empty">L’agenda respire</h2>
+          <p>Aucun rendez-vous n’est encore planifié.</p>
+        </div>
+      </section>
+
+      <section class="home-section" aria-labelledby="actions-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">À portée de pouce</p>
+            <h2 id="actions-title">Que veux-tu faire ?</h2>
+          </div>
+        </div>
+
+        <div class="action-grid">
+          <button class="action-card action-card-help physical-card" data-action="missions">
+            <span class="action-icon"><i data-lucide="hand-heart"></i></span>
+            <span class="action-copy">
+              <strong>Donner un coup de main</strong>
+              <small id="open-needs-label">Chargement des besoins…</small>
+            </span>
+            <span id="open-needs-count" class="action-number">--</span>
+          </button>
+
+          <button class="action-card action-card-agenda physical-card" data-action="agenda">
+            <span class="action-icon"><i data-lucide="calendar-days"></i></span>
+            <span class="action-copy">
+              <strong>Voir l’agenda</strong>
+              <small id="events-count-label">Les prochains temps forts</small>
+            </span>
+            <i class="action-arrow" data-lucide="arrow-up-right"></i>
+          </button>
+        </div>
+      </section>
+
+      <section class="home-section club-snapshot" aria-labelledby="snapshot-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">En un clin d’œil</p>
+            <h2 id="snapshot-title">Le club avance</h2>
+          </div>
+          <button class="text-action" data-action="agenda">Tout voir <i data-lucide="arrow-right"></i></button>
+        </div>
+
+        <div class="snapshot-rail">
+          <article class="snapshot-card snapshot-green">
+            <span class="snapshot-icon"><i data-lucide="users-round"></i></span>
+            <strong id="home-members-count">—</strong>
+            <p>membres dans l’équipe</p>
+          </article>
+          <article class="snapshot-card snapshot-apricot">
+            <span class="snapshot-icon"><i data-lucide="calendar-check-2"></i></span>
+            <strong id="home-events-count">—</strong>
+            <p>rendez-vous à venir</p>
+          </article>
+          <article class="snapshot-card snapshot-blue">
+            <span class="snapshot-icon"><i data-lucide="badge-check"></i></span>
+            <strong id="home-covered-count">—</strong>
+            <p>missions déjà couvertes</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="quote-card" aria-label="Message du club">
+        <i data-lucide="sparkles"></i>
+        <p>Un club vivant, c’est une somme de petits gestes.</p>
+      </section>
+      </div>
+
+      <section id="missions-view" class="app-view missions-view hidden" aria-labelledby="missions-title">
+        <header class="missions-hero">
+          <div>
+            <p class="eyebrow">Vie du club</p>
+            <h1 id="missions-title">Les missions</h1>
+            <p>Choisis ton coup de main, on s’occupe du reste.</p>
+          </div>
+          <span class="missions-hero-icon" aria-hidden="true"><i data-lucide="hand-heart"></i></span>
+        </header>
+
+        <div class="missions-summary physical-card" aria-label="Résumé des missions">
+          <div>
+            <span>Places ouvertes</span>
+            <strong id="missions-open-count">—</strong>
+          </div>
+          <span class="summary-divider" aria-hidden="true"></span>
+          <div>
+            <span>Mes engagements</span>
+            <strong id="missions-mine-count">—</strong>
+          </div>
+        </div>
+
+        <div class="mission-filters" role="group" aria-label="Filtrer les missions">
+          <button class="mission-filter active" data-mission-filter="all" aria-pressed="true">Toutes</button>
+          <button class="mission-filter" data-mission-filter="urgent" aria-pressed="false">Urgentes</button>
+          <button class="mission-filter" data-mission-filter="week" aria-pressed="false">Cette semaine</button>
+          <button class="mission-filter" data-mission-filter="mine" aria-pressed="false">Mes missions</button>
+        </div>
+
+        <div id="missions-loading" class="missions-loading" aria-label="Chargement des missions">
+          <article class="mission-skeleton physical-card"><span></span><span></span><span></span></article>
+          <article class="mission-skeleton physical-card"><span></span><span></span><span></span></article>
+        </div>
+
+        <div id="missions-error" class="missions-state physical-card hidden" role="alert">
+          <span class="missions-state-icon"><i data-lucide="cloud-off"></i></span>
+          <h2>Le terrain ne répond pas</h2>
+          <p>Les missions n’ont pas pu être chargées.</p>
+          <button id="missions-retry" class="state-action">Réessayer</button>
+        </div>
+
+        <div id="missions-empty" class="missions-state physical-card hidden">
+          <span class="missions-state-icon"><i data-lucide="badge-check"></i></span>
+          <h2>Tout est couvert</h2>
+          <p id="missions-empty-copy">Le club a trouvé toutes les bonnes volontés.</p>
+        </div>
+
+        <div id="missions-list" class="missions-list" aria-live="polite"></div>
+      </section>
+
+      <section id="aids-view" class="app-view account-view hidden" aria-labelledby="aids-title">
+        <header class="account-hero aids-hero">
+          <div>
+            <p class="eyebrow">Tes engagements</p>
+            <h1 id="aids-title">Mes aides</h1>
+            <p>Retrouve ici tous les coups de main que tu as choisis.</p>
+          </div>
+          <span class="account-hero-icon" aria-hidden="true"><i data-lucide="heart-handshake"></i></span>
+        </header>
+
+        <div class="account-summary physical-card" aria-label="Résumé de mes aides">
+          <div><strong id="aids-upcoming-count">—</strong><span>à venir</span></div>
+          <span aria-hidden="true"></span>
+          <div><strong id="aids-completed-count">—</strong><span>terminées</span></div>
+        </div>
+
+        <div id="aids-loading" class="account-loading" aria-label="Chargement de mes aides">
+          <article class="account-skeleton physical-card"></article>
+          <article class="account-skeleton physical-card"></article>
+        </div>
+
+        <div id="aids-empty" class="account-empty physical-card hidden">
+          <span><i data-lucide="hand-heart"></i></span>
+          <h2>Ton prochain coup de main t’attend</h2>
+          <p>Choisis une mission et elle apparaîtra automatiquement ici.</p>
+          <button class="account-primary" data-action="missions">Voir les missions</button>
+        </div>
+
+        <section id="aids-upcoming-section" class="account-section hidden" aria-labelledby="aids-upcoming-title">
+          <div class="account-section-heading">
+            <div><p class="eyebrow">Prochainement</p><h2 id="aids-upcoming-title">À venir</h2></div>
+          </div>
+          <div id="aids-upcoming-list" class="aid-list" aria-live="polite"></div>
+        </section>
+
+        <section id="aids-completed-section" class="account-section hidden" aria-labelledby="aids-completed-title">
+          <div class="account-section-heading">
+            <div><p class="eyebrow">Déjà accompli</p><h2 id="aids-completed-title">Terminées</h2></div>
+          </div>
+          <div id="aids-completed-list" class="aid-list"></div>
+        </section>
+      </section>
+
+      <section id="profile-view" class="app-view account-view hidden" aria-labelledby="profile-title">
+        <header class="account-hero profile-hero">
+          <div>
+            <p class="eyebrow">Ton espace</p>
+            <h1 id="profile-title">Profil</h1>
+            <p>Gère tes informations et suis ton parcours dans le club.</p>
+          </div>
+          <span class="account-hero-icon" aria-hidden="true"><i data-lucide="user-round"></i></span>
+        </header>
+
+        <article class="profile-identity physical-card">
+          <span id="profile-avatar" class="profile-avatar">AP</span>
+          <div>
+            <h2 id="profile-name">—</h2>
+            <p id="profile-role">Bénévole</p>
+            <span id="profile-function" class="profile-function hidden"></span>
+          </div>
+          <span class="profile-role-icon" aria-hidden="true"><i data-lucide="badge-check"></i></span>
+        </article>
+
+        <div class="profile-panels">
+          <details class="profile-panel physical-card" open>
+            <summary>
+              <span class="profile-panel-icon"><i data-lucide="trophy"></i></span>
+              <span><strong>Mon parcours</strong><small>Mon implication dans le club</small></span>
+              <i class="profile-chevron" data-lucide="chevron-down"></i>
+            </summary>
+            <div class="profile-panel-body">
+              <div class="profile-stats">
+                <div><strong id="profile-upcoming-count">—</strong><span>à venir</span></div>
+                <div><strong id="profile-completed-count">—</strong><span>réalisées</span></div>
+              </div>
+              <button class="profile-link-button" data-action="aids">
+                Voir tous mes engagements <i data-lucide="arrow-right"></i>
+              </button>
+            </div>
+          </details>
+
+          <details class="profile-panel physical-card">
+            <summary>
+              <span class="profile-panel-icon profile-panel-icon-blue"><i data-lucide="contact"></i></span>
+              <span><strong>Mes coordonnées</strong><small>Téléphone et adresse email</small></span>
+              <i class="profile-chevron" data-lucide="chevron-down"></i>
+            </summary>
+            <div class="profile-panel-body">
+              <form id="profile-contact-form" class="profile-form" novalidate>
+                <label for="profile-phone">Téléphone</label>
+                <input id="profile-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="06 12 34 56 78">
+                <label for="profile-email">Email</label>
+                <input id="profile-email" type="email" inputmode="email" autocomplete="email" placeholder="prenom@exemple.fr">
+                <p id="profile-contact-error" class="profile-form-error" role="alert"></p>
+                <button id="profile-contact-save" class="account-primary" type="submit">Enregistrer</button>
+                <small>Tes coordonnées facilitent l’organisation entre membres.</small>
+              </form>
+            </div>
+          </details>
+
+          <details id="profile-management-panel" class="profile-panel physical-card hidden">
+            <summary>
+              <span class="profile-panel-icon profile-panel-icon-apricot"><i data-lucide="shield-check"></i></span>
+              <span><strong>Gestion du club</strong><small>Outils réservés aux responsables</small></span>
+              <i class="profile-chevron" data-lucide="chevron-down"></i>
+            </summary>
+            <div class="profile-panel-body">
+              <button class="profile-management-action" data-profile-action="announcement">
+                <span><i data-lucide="megaphone"></i></span>
+                <span><strong>Publier une annonce</strong><small>Informer rapidement tout le club</small></span>
+                <i data-lucide="arrow-up-right"></i>
+              </button>
+              <div id="profile-requests-wrap" class="profile-requests hidden">
+                <div class="profile-subheading">
+                  <strong>Demandes d’inscription</strong>
+                  <span id="profile-requests-count">0</span>
+                </div>
+                <div id="profile-requests-list"></div>
+              </div>
+            </div>
+          </details>
+
+          <details class="profile-panel physical-card">
+            <summary>
+              <span class="profile-panel-icon profile-panel-icon-green"><i data-lucide="download"></i></span>
+              <span><strong>Installer l’application</strong><small>Accès rapide depuis ton téléphone</small></span>
+              <i class="profile-chevron" data-lucide="chevron-down"></i>
+            </summary>
+            <div class="profile-panel-body">
+              <div class="install-copy">
+                <span><i data-lucide="smartphone"></i></span>
+                <div><strong>AssoPilot sur l’écran d’accueil</strong><p id="install-help">Installe l’application comme une application mobile classique.</p></div>
+              </div>
+              <button id="profile-install" class="account-primary" type="button">Installer AssoPilot</button>
+            </div>
+          </details>
+        </div>
+
+        <!-- ── Administration (webmasters) ── -->
+        <div id="admin-panel" class="hidden">
+          <h2 class="admin-section-title">Administration</h2>
+
+          <!-- Onglets Membres / Pôles -->
+          <div class="admin-tabs">
+            <button class="admin-tab active" data-admin-view="membres" onclick="adminSwitchTab('membres')">👥 Membres</button>
+            <button class="admin-tab" data-admin-view="poles" onclick="adminSwitchTab('poles')">🎯 Pôles</button>
+          </div>
+
+          <!-- Vue Membres -->
+          <div id="admin-view-membres">
+            <input type="text" id="admin-recherche" class="admin-search" placeholder="🔍 Rechercher un membre…" autocomplete="off" />
+            <div class="admin-filtres">
+              <button class="admin-filtre-btn active" data-admin-filtre="tous">Tous</button>
+              <button class="admin-filtre-btn" data-admin-filtre="webmaster">Webmasters</button>
+              <button class="admin-filtre-btn" data-admin-filtre="responsable">Responsables</button>
+              <button class="admin-filtre-btn" data-admin-filtre="benevole">Bénévoles</button>
+              <button class="admin-filtre-btn" data-admin-filtre="inactif">💤 Inactifs</button>
+            </div>
+            <div id="admin-membres-list"></div>
+          </div>
+
+          <!-- Vue Pôles -->
+          <div id="admin-view-poles" class="hidden">
+            <div id="admin-poles-list"></div>
+          </div>
+        </div>
+
+        <button id="profile-logout" class="profile-logout" type="button">
+          <i data-lucide="log-out"></i> Se déconnecter
+        </button>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Navigation principale">
+      <button class="nav-item active" data-action="home" aria-current="page">
+        <i data-lucide="house"></i><span>Accueil</span>
+      </button>
+      <button class="nav-item" data-action="missions">
+        <i data-lucide="hand-heart"></i><span>Missions</span><b id="nav-needs-badge" class="nav-badge hidden">0</b>
+      </button>
+      <button class="nav-create" data-action="create" aria-label="Créer">
+        <i data-lucide="plus"></i>
+      </button>
+      <button class="nav-item" data-action="aids">
+        <i data-lucide="heart-handshake"></i><span>Mes aides</span>
+      </button>
+      <button class="nav-item" data-action="profile">
+        <i data-lucide="user-round"></i><span>Profil</span>
+      </button>
+    </nav>
+  </div>
+
+  <div id="create-overlay" class="create-overlay hidden" aria-hidden="true">
+    <button class="create-scrim" data-create-close aria-label="Fermer le module de création"></button>
+    <section class="create-sheet" role="dialog" aria-modal="true" aria-labelledby="create-sheet-title">
+      <div class="create-handle" aria-hidden="true"></div>
+
+      <header class="create-sheet-header">
+        <button id="create-back" class="btn-icon create-back hidden" aria-label="Revenir à l’étape précédente">
+          <i data-lucide="arrow-left"></i>
+        </button>
+        <div>
+          <p id="create-kicker" class="eyebrow">Action rapide</p>
+          <h2 id="create-sheet-title">Créer</h2>
+        </div>
+        <button class="btn-icon" data-create-close aria-label="Fermer">
+          <i data-lucide="x"></i>
+        </button>
+      </header>
+
+      <div id="create-hub" class="create-panel active">
+        <p class="create-intro">Qu’est-ce que tu veux mettre en mouvement ?</p>
+        <div class="create-choice-list">
+          <button class="create-choice physical-card" data-create-kind="need">
+            <span class="create-choice-icon create-choice-apricot"><i data-lucide="hand-heart"></i></span>
+            <span><strong>Un besoin</strong><small>Un coup de main à pourvoir</small></span>
+            <i data-lucide="arrow-up-right"></i>
+          </button>
+          <button class="create-choice physical-card" data-create-kind="event">
+            <span class="create-choice-icon create-choice-green"><i data-lucide="calendar-plus"></i></span>
+            <span><strong>Un événement</strong><small>Match, tournoi, réunion…</small></span>
+            <i data-lucide="arrow-up-right"></i>
+          </button>
+          <button class="create-choice physical-card" data-create-kind="announcement">
+            <span class="create-choice-icon create-choice-blue"><i data-lucide="megaphone"></i></span>
+            <span><strong>Une annonce</strong><small>Un message visible par le club</small></span>
+            <i data-lucide="arrow-up-right"></i>
+          </button>
+          <button class="create-choice physical-card" data-create-kind="member">
+            <span class="create-choice-icon create-choice-green"><i data-lucide="user-plus"></i></span>
+            <span><strong>Inviter un membre</strong><small>Ajouter quelqu’un au club</small></span>
+            <span><strong>Inviter un membre</strong><small>Ajouter quelqu’un au club</small></span>
+            <i data-lucide="arrow-up-right"></i>
+          </button>
+            <span class="create-choice-icon create-choice-apricot"><i data-lucide="layout-template"></i></span>
+            <span><strong>Créer depuis un modèle</strong><small>Réutiliser une action existante</small></span>
+            <em>Bientôt</em>
+          </button>
+        </div>
+      </div>
+
+      <form id="create-need-form" class="create-panel" novalidate>
+        <div class="create-progress" aria-label="Progression du formulaire">
+          <span class="active"></span><span></span><span></span>
+        </div>
+
+        <section class="create-step active" data-need-step="1">
+          <div class="create-question">
+            <span>1</span>
+            <div><h3>De quoi as-tu besoin ?</h3><p>Pars d’un modèle ou écris ton propre besoin.</p></div>
+          </div>
+          <div id="need-templates" class="create-chip-grid">
+            <button type="button" data-need-template="salle"><i data-lucide="shield-check"></i>Responsable de salle</button>
+            <button type="button" data-need-template="table"><i data-lucide="timer"></i>Table de marque</button>
+            <button type="button" data-need-template="buvette"><i data-lucide="cup-soda"></i>Buvette</button>
+            <button type="button" data-need-template="arbitrage"><i data-lucide="badge"></i>Arbitrage</button>
+            <button type="button" data-need-template="courses"><i data-lucide="shopping-basket"></i>Courses</button>
+            <button type="button" data-need-template="local"><i data-lucide="sparkles"></i>Ranger le local</button>
+            <button type="button" data-need-template="coaching"><i data-lucide="users-round"></i>Coaching</button>
+            <button type="button" data-need-template="feuille"><i data-lucide="laptop"></i>Feuille de match</button>
+          </div>
+          <div class="create-field">
+            <label for="need-name">Nom du besoin <span>*</span></label>
+            <input id="need-name" type="text" placeholder="Tenir la buvette" maxlength="100" required>
+            <p class="create-field-error" data-error-for="need-name"></p>
+          </div>
+          <div class="create-field">
+            <label for="need-event">Rattacher à un événement <small>facultatif</small></label>
+            <select id="need-event"><option value="">Aucun — coup de main libre</option></select>
+          </div>
+          <div class="create-field">
+            <label for="need-group">Réserver à un groupe <small>facultatif</small></label>
+            <select id="need-group"><option value="">Ouvert à tous</option></select>
+            <p class="create-helper">Seuls les membres du groupe verront ce besoin.</p>
+          </div>
+        </section>
+
+        <section class="create-step" data-need-step="2">
+          <div class="create-question">
+            <span>2</span>
+            <div><h3>Quand et avec qui ?</h3><p>Précise l’effort nécessaire.</p></div>
+          </div>
+          <div id="need-date-block" class="create-field">
+            <label for="need-date">Date</label>
+            <input id="need-date" type="date">
+          </div>
+          <div id="need-event-date-note" class="create-context-note hidden">
+            <i data-lucide="calendar-check-2"></i>
+            <span>La date sera reprise depuis l’événement choisi.</span>
+          </div>
+          <div class="create-field-row">
+            <div class="create-field">
+              <label for="need-count">Bénévoles <span>*</span></label>
+              <input id="need-count" type="number" inputmode="numeric" min="1" max="99" value="2" required>
+              <p class="create-field-error" data-error-for="need-count"></p>
+            </div>
+            <div class="create-field">
+              <label for="need-duration">Durée estimée</label>
+              <input id="need-duration" type="text" placeholder="2 h" maxlength="30">
+            </div>
+          </div>
+          <div class="create-field">
+            <label for="need-pole">Pôle <span>*</span></label>
+            <select id="need-pole" required></select>
+            <p class="create-field-error" data-error-for="need-pole"></p>
+          </div>
+        </section>
+
+        <section class="create-step" data-need-step="3">
+          <div class="create-question">
+            <span>3</span>
+            <div><h3>Les derniers détails</h3><p>Pour que chacun sache à quoi s’attendre.</p></div>
+          </div>
+          <div class="create-field">
+            <label for="need-urgency">Niveau d’urgence</label>
+            <select id="need-urgency">
+              <option value="auto">Automatique selon la date</option>
+              <option value="urgent">Urgent</option>
+              <option value="bientot">Bientôt</option>
+              <option value="tranquille">Tranquille</option>
+            </select>
+          </div>
+          <div class="create-field">
+            <label for="need-manager">Responsable de la mission <small>facultatif</small></label>
+            <select id="need-manager"><option value="">Aucun responsable désigné</option></select>
+          </div>
+          <div class="create-field">
+            <label for="need-details">Précisions <small>facultatif</small></label>
+            <textarea id="need-details" rows="3" maxlength="400" placeholder="Rendez-vous à l’entrée côté parking"></textarea>
+          </div>
+          <fieldset class="create-visibility">
+            <legend>Qui peut voir ce besoin ?</legend>
+            <div class="visibility-grid" data-visibility-group="need">
+              <button type="button" class="active" data-visibility="tous"><i data-lucide="users-round"></i><span>Tout le club</span></button>
+              <button type="button" data-visibility="bureau"><i data-lucide="landmark"></i><span>Le bureau</span></button>
+              <button type="button" data-visibility="pole"><i data-lucide="layers-3"></i><span>Un pôle</span></button>
+              <button type="button" data-visibility="membres"><i data-lucide="user-round-check"></i><span>Des membres</span></button>
+            </div>
+            <div id="need-visibility-pole-wrap" class="create-field hidden">
+              <label for="need-visibility-pole">Pôle destinataire</label>
+              <select id="need-visibility-pole"></select>
+            </div>
+            <div id="need-visibility-members-wrap" class="create-members-picker hidden">
+              <p>Choisis au moins une personne.</p>
+              <div id="need-visibility-members"></div>
+            </div>
+            <p class="create-field-error" data-error-for="need-visibility"></p>
+          </fieldset>
+        </section>
+
+        <div class="create-form-actions">
+          <button type="button" class="create-secondary" data-form-back="need">Retour</button>
+          <button type="button" class="create-primary" data-form-next="need">Continuer <i data-lucide="arrow-right"></i></button>
+          <button type="submit" class="create-primary hidden">Publier le besoin <i data-lucide="send"></i></button>
+        </div>
+      </form>
+
+      <form id="create-event-form" class="create-panel" novalidate>
+        <div class="create-progress create-progress-four" aria-label="Progression du formulaire">
+          <span class="active"></span><span></span><span></span><span></span>
+        </div>
+
+        <section class="create-step active" data-event-step="1">
+          <div class="create-question">
+            <span>1</span>
+            <div><h3>Quel type d’événement ?</h3><p>Les missions habituelles pourront être créées automatiquement.</p></div>
+          </div>
+          <div id="event-types" class="create-type-grid">
+            <button type="button" data-event-type="match"><i data-lucide="goal"></i><span>Match</span></button>
+            <button type="button" data-event-type="tournoi"><i data-lucide="trophy"></i><span>Tournoi</span></button>
+            <button type="button" data-event-type="stage"><i data-lucide="dumbbell"></i><span>Stage</span></button>
+            <button type="button" data-event-type="reunion"><i data-lucide="clipboard-list"></i><span>Réunion / AG</span></button>
+            <button type="button" data-event-type="fete"><i data-lucide="party-popper"></i><span>Fête</span></button>
+            <button type="button" data-event-type="autre"><i data-lucide="calendar-plus"></i><span>Autre</span></button>
+          </div>
+          <div id="event-auto-needs" class="auto-needs-preview hidden"></div>
+          <p class="create-field-error" data-error-for="event-type"></p>
+        </section>
+
+        <section class="create-step" data-event-step="2">
+          <div class="create-question">
+            <span>2</span>
+            <div><h3>C’est quand ?</h3><p>Choisis une date et, si besoin, une heure.</p></div>
+          </div>
+          <div class="date-shortcuts">
+            <button type="button" data-date-shortcut="0">Aujourd’hui</button>
+            <button type="button" data-date-shortcut="1">Demain</button>
+            <button type="button" data-date-shortcut="samedi">Samedi</button>
+            <button type="button" data-date-shortcut="dimanche">Dimanche</button>
+          </div>
+          <div class="create-field-row">
+            <div class="create-field">
+              <label for="event-date">Date <span>*</span></label>
+              <input id="event-date" type="date" required>
+              <p class="create-field-error" data-error-for="event-date"></p>
+            </div>
+            <div class="create-field">
+              <label for="event-time">Heure</label>
+              <input id="event-time" type="time">
+            </div>
+          </div>
+        </section>
+
+        <section class="create-step" data-event-step="3">
+          <div class="create-question">
+            <span>3</span>
+            <div><h3>Comment ça s’appelle ?</h3><p>Un nom court sera plus facile à retrouver.</p></div>
+          </div>
+          <div class="create-field">
+            <label for="event-name">Nom de l’événement <span>*</span></label>
+            <input id="event-name" type="text" placeholder="Match U15 Garçons" maxlength="100" required>
+            <p class="create-field-error" data-error-for="event-name"></p>
+          </div>
+          <div class="create-field">
+            <label for="event-pole">Pôle responsable <span>*</span></label>
+            <select id="event-pole" required></select>
+            <p class="create-field-error" data-error-for="event-pole"></p>
+          </div>
+        </section>
+
+        <section class="create-step" data-event-step="4">
+          <div class="create-question">
+            <span>4</span>
+            <div><h3>Qui doit le voir ?</h3><p>La visibilité sera aussi appliquée aux missions automatiques.</p></div>
+          </div>
+          <fieldset class="create-visibility">
+            <legend>Audience</legend>
+            <div class="visibility-grid" data-visibility-group="event">
+              <button type="button" class="active" data-visibility="tous"><i data-lucide="users-round"></i><span>Tout le club</span></button>
+              <button type="button" data-visibility="bureau"><i data-lucide="landmark"></i><span>Le bureau</span></button>
+              <button type="button" data-visibility="pole"><i data-lucide="layers-3"></i><span>Un pôle</span></button>
+              <button type="button" data-visibility="membres"><i data-lucide="user-round-check"></i><span>Des membres</span></button>
+            </div>
+            <div id="event-visibility-pole-wrap" class="create-field hidden">
+              <label for="event-visibility-pole">Pôle destinataire</label>
+              <select id="event-visibility-pole"></select>
+            </div>
+            <div id="event-visibility-members-wrap" class="create-members-picker hidden">
+              <p>Choisis au moins une personne.</p>
+              <div id="event-visibility-members"></div>
+            </div>
+            <p class="create-field-error" data-error-for="event-visibility"></p>
+          </fieldset>
+          <div id="event-recap" class="create-recap"></div>
+        </section>
+
+        <div class="create-form-actions">
+          <button type="button" class="create-secondary" data-form-back="event">Retour</button>
+          <button type="button" class="create-primary" data-form-next="event">Continuer <i data-lucide="arrow-right"></i></button>
+          <button type="submit" class="create-primary hidden">Créer l’événement <i data-lucide="calendar-plus"></i></button>
+        </div>
+      </form>
+
+      <form id="create-announcement-form" class="create-panel" novalidate>
+        <div class="create-question">
+          <span><i data-lucide="megaphone"></i></span>
+          <div><h3>Publier une annonce</h3><p>Le message apparaîtra sur l’accueil du club.</p></div>
+        </div>
+        <div class="create-field">
+          <label for="announcement-title">Titre <span>*</span></label>
+          <input id="announcement-title" type="text" placeholder="Tournoi ce week-end" maxlength="100" required>
+          <p class="create-field-error" data-error-for="announcement-title"></p>
+        </div>
+        <div class="create-field">
+          <label for="announcement-copy">Message <span>*</span></label>
+          <textarea id="announcement-copy" rows="5" maxlength="600" placeholder="On a besoin de monde à la buvette samedi." required></textarea>
+          <p class="create-field-error" data-error-for="announcement-copy"></p>
+        </div>
+        <div class="create-field">
+          <label for="announcement-level">Importance</label>
+          <select id="announcement-level">
+            <option value="info">Information</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
+        <button type="submit" class="create-primary create-submit-wide">Publier l’annonce <i data-lucide="send"></i></button>
+      </form>
+
+      <!-- Formulaire : inviter un membre -->
+      <form id="create-member-form" class="create-panel" novalidate>
+        <div class="create-question">
+          <span><i data-lucide="user-plus"></i></span>
+          <div><h3>Inviter un membre</h3><p>Crée un compte. La personne choisira son PIN à la première connexion.</p></div>
+        </div>
+        <div class="create-field">
+          <label for="member-prenom">Prénom <span>*</span></label>
+          <input id="member-prenom" type="text" placeholder="Marie" required>
+          <p class="create-field-error" data-error-for="member-prenom"></p>
+        </div>
+        <div class="create-field">
+          <label for="member-nom">Nom</label>
+          <input id="member-nom" type="text" placeholder="Dupont">
+        </div>
+        <div class="create-field">
+          <label for="member-identifiant">Identifiant <span>*</span></label>
+          <input id="member-identifiant" type="text" placeholder="marie.dupont" autocapitalize="none" autocomplete="off" required>
+          <p class="create-field-help">Lettres minuscules, chiffres, points. Ex : <em>marie.dupont</em></p>
+          <p class="create-field-error" data-error-for="member-identifiant"></p>
+        </div>
+        <div class="create-field">
+          <label for="member-role">Rôle</label>
+          <select id="member-role">
+            <option value="benevole">Bénévole</option>
+            <option value="responsable">Responsable</option>
+            <option value="webmaster">Webmaster</option>
+          </select>
+        </div>
+        <div class="create-field">
+          <label for="member-fonction">Fonction (facultatif)</label>
+          <input id="member-fonction" type="text" placeholder="Trésorière adjointe">
+        </div>
+        <button type="submit" class="create-primary create-submit-wide">Créer le compte <i data-lucide="user-check"></i></button>
+      </form>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite">Message</div>
+
+  <div id="mission-confirm" class="mission-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="mission-confirm-title">
+    <button class="mission-dialog-backdrop" data-dialog-close aria-label="Fermer"></button>
+    <div class="mission-dialog-card physical-card">
+      <span class="mission-dialog-icon"><i data-lucide="hand-heart"></i></span>
+      <h2 id="mission-confirm-title">Confirmer ce coup de main ?</h2>
+      <p id="mission-confirm-copy"></p>
+      <div class="mission-dialog-actions">
+        <button class="dialog-secondary" data-dialog-close>Annuler</button>
+        <button id="mission-confirm-action" class="dialog-primary">Je confirme</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts/supabase.js?v=20260723-2"></script>
+  <script src="scripts/auth.js?v=20260723-2"></script>
+  <script src="scripts/app.js?v=20260723-2"></script>
+  <script src="scripts/create.js?v=20260723-2"></script>
+  <script src="scripts/manage.js?v=20260723-2"></script>
+  <script src="scripts/account.js?v=20260723-2"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>
